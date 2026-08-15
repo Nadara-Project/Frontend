@@ -1,95 +1,66 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Header from './Header';       
-import { FiEye, FiEyeOff, FiAlertCircle, FiLogIn } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiAlertCircle } from "react-icons/fi";
 
-const Register = () => {
-  // حالة الدور النشط: (patient, doctor, admin)
-  const [activeRole, setActiveRole] = useState('patient');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+// قائمة الأدوار
+const roles = [
+  { key: 'patient', label: 'مريض' },
+  { key: 'doctor', label: 'طبيب' },
+  { key: 'admin', label: 'ادمن' }
+];
 
-  // حالة بيانات النموذج
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
-    rememberMe: false
-  });
-
-  // قائمة الأدوار
-  const roles = [
-    { key: 'patient', label: 'مريض' },
-    { key: 'doctor', label: 'طبيب' },
-    { key: 'admin', label: 'ادمن' }
-  ];
-
-  // دالة التعامل مع التغيير في الحقول
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
-
-  // --- 1. شريط مبدل الأدوار (Role Switcher) ---
-  const RoleSwitcher = () => (
-    <div className="flex items-center gap-[4px] p-[4px] bg-[#4C2325]/10 rounded-[8px] w-[398px] h-[44px]">
-      {roles.map(role => (
-        <button 
-          key={role.key}
-          type="button"
-          onClick={() => setActiveRole(role.key)}
-          className={`flex-1 text-center h-full rounded-[6px] text-[14px] font-medium transition-all cursor-pointer ${
-            activeRole === role.key 
-            ? 'bg-white text-[#4C2325] shadow-sm font-bold' 
-            : 'text-[#4C2325]/60 hover:text-[#4C2325]'
-          }`}
-        >
-          {role.label}
-        </button>
-      ))}
-    </div>
-  );
-
-  // --- 2. كارت التنبيه الخاص بالطبيب والأدمن ---
-  const AuthAlert = ({ title, subtitle }) => (
-      // 1. الحاوية الكلية 
-    <div className="flex flex-col items-center max-w-[448px] w-full text-center px-[24px] pt-[32px] pb-[24px] mx-auto">
-      
-      <div className="w-[80px] h-[80px] bg-[#D5C7AD]/50 rounded-full flex items-center justify-center mb-[24px]">
-        <FiAlertCircle className="w-[40px] h-[40px] text-[#3F4C3A]" />
-      </div>
-
-      <div className="flex flex-col items-center gap-[12px] w-full max-w-[320px] mb-[24px]">
-        <h2 className="font-['Tajawal'] font-medium text-[20px] leading-[32px] text-[#4C2325] text-center">
-          {title}
-        </h2>
-        <p className="font-['Tajawal'] font-normal text-[16px] leading-[24px] text-[#4C2325] text-center">
-          {subtitle}
-        </p>
-      </div>
-
+// --- 1. شريط مبدل الأدوار (Role Switcher) ---
+const RoleSwitcher = ({ activeRole, setActiveRole }) => (
+  <div className="flex items-center gap-[4px] p-[4px] bg-[#4C2325]/10 rounded-[8px] w-full h-[44px]">
+    {roles.map(role => (
       <button 
+        key={role.key}
         type="button"
-        className="bg-[#4C2325] text-white w-[176px] h-[52px] rounded-[6px] shadow-sm font-['Tajawal'] font-medium text-[16px] flex items-center justify-center hover:opacity-90 transition-opacity"
+        onClick={() => setActiveRole(role.key)}
+        className={`flex-1 text-center h-full rounded-[6px] text-[14px] font-medium transition-all cursor-pointer ${
+          activeRole === role.key 
+          ? 'bg-white text-[#4C2325] shadow-sm font-bold' 
+          : 'text-[#4C2325]/60 hover:text-[#4C2325]'
+        }`}
       >
-        تسجيل الدخول
+        {role.label}
       </button>
+    ))}
+  </div>
+);
 
+// --- 2. كارت التنبيه الخاص بالطبيب والأدمن ---
+const AuthAlert = ({ title, subtitle }) => (
+  <div className="flex flex-col items-center max-w-[448px] w-full text-center px-[24px] pt-[32px] pb-[24px] mx-auto">
+    <div className="w-[80px] h-[80px] bg-[#D5C7AD]/50 rounded-full flex items-center justify-center mb-[24px]">
+      <FiAlertCircle className="w-[40px] h-[40px] text-[#3F4C3A]" />
     </div>
-  );
 
-  // --- 3. مكون حقل الإدخال الموحد 
- const AuthInput = ({ label, name, icon: Icon, type = "text", onIconClick, ...props }) => (
- 
-  <div className="flex flex-col gap-[8px] w-[398px] text-right">
-    {/* Label */}
+    <div className="flex flex-col items-center gap-[12px] w-full max-w-[320px] mb-[24px]">
+      <h2 className="font-['Tajawal'] font-medium text-[20px] leading-[32px] text-[#4C2325] text-center">
+        {title}
+      </h2>
+      <p className="font-['Tajawal'] font-normal text-[16px] leading-[24px] text-[#4C2325] text-center">
+        {subtitle}
+      </p>
+    </div>
+
+    <Link 
+      to="/login"
+      className="bg-[#4C2325] text-white w-[176px] h-[52px] rounded-[6px] shadow-sm font-['Tajawal'] font-medium text-[16px] flex items-center justify-center hover:opacity-90 transition-opacity"
+    >
+      تسجيل الدخول
+    </Link>
+  </div>
+);
+
+// --- 3. مكون حقل الإدخال الموحد ---
+const AuthInput = ({ label, name, icon: Icon, type = "text", onIconClick, ...props }) => (
+  <div className="flex flex-col gap-[8px] w-full text-right">
     <label className="text-[14px] font-medium text-[#4C2325]">{label}</label>
     
-    <div className="relative flex items-center w-[398px]">
+    <div className="relative flex items-center w-full">
       <input 
         type={type} 
         name={name}
@@ -108,65 +79,73 @@ const Register = () => {
   </div>
 );
 
-  // --- 4. نموذج تسجيل المريض ---
-  const PatientForm = () => (
-    <form onSubmit={(e) => { e.preventDefault(); console.log(formData); }} className="flex flex-col gap-[20px] w-full">
-      <AuthInput 
-        name="name"
-        label="الاسم كامل" 
-        placeholder="مثال: محمد علي أحمد" 
-        value={formData.name} 
-        onChange={handleInputChange} 
-        required 
-      />
+// --- 4. نموذج تسجيل المريض ---
+const PatientForm = ({ 
+  formData, 
+  handleInputChange, 
+  showPassword, 
+  setShowPassword, 
+  showConfirmPassword, 
+  setShowConfirmPassword 
+}) => (
+  <form onSubmit={(e) => { e.preventDefault(); console.log(formData); }} className="flex flex-col gap-[20px] w-full">
+    <AuthInput 
+      name="name"
+      label="الاسم كامل" 
+      placeholder="مثال: محمد علي أحمد" 
+      value={formData.name} 
+      onChange={handleInputChange} 
+      required 
+    />
 
-      <AuthInput 
-        name="email"
-        label="البريد الالكتروني" 
-        placeholder="example@gmail.com" 
-        type="email" 
-        dir="ltr" 
-        value={formData.email} 
-        onChange={handleInputChange} 
-        required 
-      />
+    <AuthInput 
+      name="email"
+      label="البريد الالكتروني" 
+      placeholder="example@gmail.com" 
+      type="email" 
+      dir="ltr" 
+      value={formData.email} 
+      onChange={handleInputChange} 
+      required 
+    />
 
-      <AuthInput 
-        name="phone"
-        label="رقم الهاتف" 
-        placeholder="059 11 234 5678" 
-         dir="ltr"
-        value={formData.phone} 
-        onChange={handleInputChange} 
-        required 
-      />
+    <AuthInput 
+      name="phone"
+      label="رقم الهاتف" 
+      placeholder="059 11 234 5678" 
+      dir="ltr"
+      value={formData.phone} 
+      onChange={handleInputChange} 
+      required 
+    />
 
-      <AuthInput 
-        name="password"
-        label="كلمة المرور" 
-        type={showPassword ? "text" : "password"} 
-        placeholder="**********" 
-        icon={showPassword ? FiEyeOff : FiEye} 
-        value={formData.password} 
-        onChange={handleInputChange} 
-        onIconClick={() => setShowPassword(!showPassword)} 
-        required 
-      />
+    <AuthInput 
+      name="password"
+      label="كلمة المرور" 
+      type={showPassword ? "text" : "password"}
+      placeholder="**********" 
+      icon={showPassword ? FiEyeOff : FiEye} 
+      value={formData.password} 
+      onChange={handleInputChange} 
+      onIconClick={() => setShowPassword(!showPassword)} 
+      required 
+    />
 
-      <AuthInput 
-        name="confirmPassword"
-        label="تأكيد كلمة المرور" 
-        type={showConfirmPassword ? "text" : "password"} 
-        placeholder="**********" 
-        icon={showConfirmPassword ? FiEyeOff : FiEye} 
-        value={formData.confirmPassword} 
-        onChange={handleInputChange} 
-        onIconClick={() => setShowConfirmPassword(!showConfirmPassword)} 
-        required 
-      />
+    <AuthInput 
+      name="confirmPassword"
+      label="تأكيد كلمة المرور" 
+      type={showConfirmPassword ? "text" : "password"} 
+      placeholder="**********" 
+      icon={showConfirmPassword ? FiEyeOff : FiEye} 
+      value={formData.confirmPassword} 
+      onChange={handleInputChange} 
+      onIconClick={() => setShowConfirmPassword(!showConfirmPassword)} 
+      required 
+    />
 
-      {/* خيار تذكرني */}
-      <div className="flex items-center gap-2 cursor-pointer text-[14px] text-[#4C2325]">
+    {/* خيار تذكرني + نسيت كلمة المرور */}
+    <div className="flex items-center justify-between w-full text-[14px] text-[#4C2325]">
+      <label className="flex items-center gap-2 cursor-pointer select-none">
         <input 
           type="checkbox" 
           name="rememberMe"
@@ -175,19 +154,48 @@ const Register = () => {
           className="w-4 h-4 rounded border-gray-300 text-[#4C2325] focus:ring-[#4C2325] cursor-pointer" 
         />
         <span>تذكرني</span>
-      </div>
+      </label>
 
-     {/* زر إرسال النموذج */}
-<button
-  type="submit"
-  className="w-full h-[48px] bg-[#4C2325] hover:bg-[#381a1b] text-white font-['Tajawal'] font-medium text-[14px] leading-[20px] tracking-[0.14px] rounded-[8px] flex items-center justify-center gap-2 transition-colors cursor-pointer mt-1"
->
-  <span>إنشاء حساب</span>
-</button>
-    </form>
-  );
+      <Link 
+        to="/forgot-password" 
+        className="text-[#4C2325] font-medium hover:underline transition-all"
+      >
+        نسيت كلمة المرور؟
+      </Link>
+    </div>
 
-  // تحدد المحتوى المطلوب حسب التبويب النشط
+    <button
+      type="submit"
+      className="w-full h-[48px] bg-[#4C2325] hover:bg-[#381a1b] text-white font-['Tajawal'] font-medium text-[14px] leading-[20px] tracking-[0.14px] rounded-[8px] flex items-center justify-center gap-2 transition-colors cursor-pointer mt-1"
+    >
+      <span>إنشاء حساب</span>
+    </button>
+  </form>
+);
+
+// --- 5. المكون الرئيسي ---
+const Register = () => {
+  const [activeRole, setActiveRole] = useState('patient');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+    rememberMe: false
+  });
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
   const renderActiveContent = () => {
     switch (activeRole) {
       case 'doctor':
@@ -205,41 +213,42 @@ const Register = () => {
           />
         );
       default:
-        return <PatientForm />;
+        return (
+          <PatientForm 
+            formData={formData}
+            handleInputChange={handleInputChange}
+            showPassword={showPassword}
+            setShowPassword={setShowPassword}
+            showConfirmPassword={showConfirmPassword}
+            setShowConfirmPassword={setShowConfirmPassword}
+          />
+        );
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-4" dir="rtl">
-      
-      {/* الكارت الرئيسي  */}
-      <div className="bg-white rounded-[16px] border border-[#E2E8F0] w-[446px] shadow-sm flex flex-col overflow-hidden">
+      <div className="bg-white rounded-[16px] border border-[#E2E8F0] w-full max-w-[446px] shadow-sm flex flex-col overflow-hidden">
         
-        {/* 1. الهيدر المشترك */}
         <Header 
           title="إنشاء حساب" 
           subtitle="مرحباً بك في نضارة للجلدية والتجميل" 
         />
 
-        {/* 2. قسم المحتوى الداخلي  */}
-        <div className="flex flex-col items-center pt-[16px] px-[24px] pb-[24px] gap-[16px] w-full ">
-          
-          {/* مبدل الأدوار */}
-          <RoleSwitcher />
+        <div className="flex flex-col items-center pt-[16px] px-[24px] pb-[24px] gap-[16px] w-full">
+          <RoleSwitcher activeRole={activeRole} setActiveRole={setActiveRole} />
 
-          {/* النموذج أو التنبيه */}
           <div className="w-full">
             {renderActiveContent()}
           </div>
-
         </div>
 
-        {/* 3. الفوتر السفلي */}
-        <div className="w-full h-[57px] flex items-center justify-center text-[14px] text-[#4C2325] py-[16px] px-[24px] bg-[#4C2325]/10 border-t border-[#D5C7AD]/20">
+        {/* الفوتر السفلي  */}
+        <div className="w-full min-h-[57px] flex items-center justify-center text-[14px] text-[#4C2325] py-[16px] px-[24px] bg-[#4C2325]/10 border-t border-[#D5C7AD]/20 gap-1 mt-auto">
           <span>لديك حساب؟</span>
-          <a href="/login" className="text-[#4C2325] font-bold hover:underline mr-1">
+          <Link to="/login" className="text-[#4C2325] font-bold hover:underline">
             تسجيل دخول
-          </a>
+          </Link>
         </div>
 
       </div>

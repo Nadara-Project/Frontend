@@ -76,7 +76,9 @@ const Login = () => {
               />
               تذكرني
             </label>
-            <a href="#forgot" className="hover:underline text-[#4C2325]">نسيت كلمة المرور؟</a>
+           <Link to="/forgot-password" className="hover:underline text-[#4C2325]">
+  نسيت كلمة المرور؟
+</Link>
           </div>
 
           {/* زر تسجيل الدخول */}
