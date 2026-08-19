@@ -18,7 +18,7 @@ function App() {
     <>
 
 
-      {/* <BrowserRouter>
+      <BrowserRouter>
 
         <Routes>
           <Route path="/" element={<Login />} />
@@ -28,7 +28,7 @@ function App() {
           <Route path="/check-email" element={<CheckEmail />} />
         </Routes>
         <Header />
-      </BrowserRouter> */}
+      </BrowserRouter>
 
       <Dashboard />
 
