@@ -14,8 +14,8 @@ const CheckEmail = () => {
         />
 
         <div className="flex flex-col items-center pt-[24px] px-[24px] pb-[24px] w-full text-center">
-          {/* أيقونة الإيميل */}
-          <div className="w-[80px] h-[80px] bg-[#D5C7AD]/40 rounded-full flex items-center justify-center mb-[20px]">
+          {/* أيقونة الإيميل باللون الأساسي والذهبي/البيج المحدث */}
+          <div className="w-[80px] h-[80px] bg-[#D5C7AD]/20 rounded-full flex items-center justify-center mb-[20px]">
             <FiMail className="w-[40px] h-[40px] text-[#4C2325]" />
           </div>
 
@@ -25,15 +25,22 @@ const CheckEmail = () => {
 
           <Link
             to="/forgot-password"
-            className="w-full h-[48px] bg-[#4C2325] hover:bg-[#381a1b] text-white font-medium text-[14px] rounded-[8px] flex items-center justify-center transition-colors"
+            className="w-full h-[48px] bg-[#4C2325] hover:bg-[#36181A] text-white font-medium text-[14px] rounded-[8px] flex items-center justify-center transition-colors"
           >
             إعادة الإرسال
           </Link>
         </div>
 
-        <div className="w-full min-h-[57px] flex items-center justify-center text-[14px] text-[#4C2325] py-[16px] px-[24px] bg-[#4C2325]/10 border-t border-[#D5C7AD]/20 gap-1 mt-auto">
-          <span>تذكرت كلمة المرور؟</span>
-          <Link to="/login" className="text-[#4C2325] font-bold hover:underline">
+        {/* الفوتر السفلي - بالقيم المحدثة من Figma */}
+        <div className="w-full h-[57px] py-[16px] px-[24px] bg-[#4C2325]/10 border-t border-[#D5C7AD]/20 flex items-center justify-center gap-1 font-tajawal text-center mt-auto">
+          <span className="font-normal text-[14px] leading-[24px] text-[#4C2325]">
+            تذكرت كلمة المرور؟
+          </span>
+          
+          <Link 
+            to="/login" 
+            className="font-bold text-[14px] leading-[20px] tracking-[0.14px] text-[#4C2325] hover:underline mr-1"
+          >
             تسجيل دخول
           </Link>
         </div>
