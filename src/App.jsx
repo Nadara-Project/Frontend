@@ -5,25 +5,22 @@ import ForgotPassword from "./Components/Features/Feature1-Auth/ForgotPassword";
 import CheckEmail from './Components/Features/Feature1-Auth/CheckEmail';
 import Dashboard from './Components/Features/Feature2/Dashboard';
 
-// إذا أردتِ استيراد مكونات صديقتك لتظهر في الصفحة الرئيسية بعد الدخول:
-// import Hero from "./Components/Features/Feature3/Hero";
-// import Services from "./Components/Features/Feature3/Services";
-// import Footer from "./Components/Features/Feature3/Footer";
-
 const isAuthenticated = () => !!localStorage.getItem('auth_token');
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* المسارات العامة لتسجيل الدخول وإنشاء الحساب */}
-        <Route path="/" element={<Login />} />
+        {/* الصفحة الرئيسية للموقع (تظهر واجهة نضارة والخدمات أولاً) */}
+        <Route path="/" element={<Dashboard />} />
+        
+        {/* مسارات المصادقة العامة */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/check-email" element={<CheckEmail />} />
         
-        {/* مسار لوحة التحكم (الذي يظهر بعد تسجيل الدخول بنجاح) */}
+        {/* مسار لوحة التحكم المحمي */}
         <Route 
           path="/dashboard" 
           element={
@@ -31,8 +28,8 @@ function App() {
           } 
         />
 
-        {/* توجيه أي مسار خاطئ لصفحة تسجيل الدخول */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* توجيه أي مسار خاطئ إلى الصفحة الرئيسية */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

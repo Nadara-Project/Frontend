@@ -1,7 +1,9 @@
-
-
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const FooterCTA = () => {
+    const navigate = useNavigate();
+
     return (
         <div
             dir="rtl"
@@ -81,6 +83,7 @@ const FooterCTA = () => {
                         bg-[#D5C7AD33]
                         px-[24px]
                         py-[8px]
+                        cursor-pointer
                     "
                 >
                     <span
@@ -100,8 +103,9 @@ const FooterCTA = () => {
                     </span>
                 </button>
 
-                {/* إنشاء حساب */}
+                {/* إنشاء حساب - يوجه لصفحة التسجيل */}
                 <button
+                    onClick={() => navigate('/register')}
                     className="
                         flex
                         h-[42px]
@@ -113,6 +117,9 @@ const FooterCTA = () => {
                         px-[24px]
                         py-[8px]
                         shadow-[0px_1px_2px_0px_#0000000D]
+                        cursor-pointer
+                        hover:bg-[#c5b79d]
+                        transition-colors
                     "
                 >
                     <span
