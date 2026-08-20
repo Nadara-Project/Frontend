@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import MainHeader from '../../../Layouts/Header'; // الناف بار العام للموقع
 import Header from './Header'; // رأسية النموذج الداخلية
@@ -14,6 +14,10 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // العودة إلى الصفحة التي حاول المستخدم فتحها قبل تسجيل الدخول.
+  const redirectTo = location.state?.from ?? '/dashboard';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,7 +26,7 @@ const Login = () => {
     setIsLoading(true);
     try {
       await auth.login(email, password);
-      navigate('/dashboard');
+      navigate(redirectTo, { replace: true });
     } catch (error) {
       if (error.status === 422) {
         setErrorMessage(error.fieldError('email') || "البريد الإلكتروني أو كلمة المرور غير صحيحة.");

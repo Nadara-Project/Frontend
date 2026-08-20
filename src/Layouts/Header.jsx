@@ -1,6 +1,10 @@
 import { Link, NavLink } from "react-router-dom";
+import { FiLogOut } from "react-icons/fi";
+import { useAuth } from "../hooks/useAuth";
 
 const Header = () => {
+    const { user, isAuthenticated, logout } = useAuth();
+
     const navLinks = [
         {
             name: "الرئيسية",
@@ -131,56 +135,111 @@ const Header = () => {
                 </nav>
 
                 {/* Authentication */}
-                <div className="w-[172.08px] h-[40px] flex gap-[16px]">
-                    
-                    {/* Login */}
-                    <Link
-                        to="/login"
-                        className="
-                            flex
-                            w-[36px]
-                            h-[40px]
-                            items-center
-                            justify-center
-                            font-[Tajawal]
-                            text-[16px]
-                            font-medium
-                            leading-[24px]
-                            text-right
-                            text-[#4C2325]
-                            transition
-                            hover:opacity-70
-                        "
-                    >
-                        دخول
-                    </Link>
+                <div className="h-[40px] flex items-center gap-[16px]">
+                    {isAuthenticated ? (
+                        <>
+                            {/* Patient dashboard */}
+                            <NavLink
+                                to="/dashboard"
+                                className="
+                                    flex
+                                    h-[40px]
+                                    items-center
+                                    justify-center
+                                    rounded-[8px]
+                                    bg-[#4C2325]
+                                    px-[16px]
+                                    py-[8px]
+                                    font-[Tajawal]
+                                    text-[16px]
+                                    font-medium
+                                    leading-[24px]
+                                    whitespace-nowrap
+                                    text-white
+                                    shadow-[0px_1px_2px_0px_#0000000D]
+                                    transition
+                                    hover:opacity-90
+                                "
+                            >
+                                {user?.name?.trim().split(/\s+/)[0] ?? "حسابي"}
+                            </NavLink>
 
-                    {/* Register */}
-                    <Link
-                        to="/register"
-                        className="
-                            flex
-                            w-[120.08px]
-                            h-[40px]
-                            items-center
-                            justify-center
-                            rounded-[8px]
-                            bg-[#4C2325]
-                            px-[16px]
-                            py-[8px]
-                            font-[Tajawal]
-                            text-[16px]
-                            font-medium
-                            leading-[24px]
-                            text-right
-                            text-white
-                            shadow-[0px_1px_2px_0px_#0000000D]
-                            transition
-                            hover:opacity-90
-                        "
-                    >
-                        إنشاء حساب
-                    </Link>
+                            {/* Logout */}
+                            <button
+                                type="button"
+                                onClick={logout}
+                                aria-label="تسجيل الخروج"
+                                title="تسجيل الخروج"
+                                className="
+                                    flex
+                                    h-[40px]
+                                    w-[40px]
+                                    cursor-pointer
+                                    items-center
+                                    justify-center
+                                    rounded-[8px]
+                                    border
+                                    border-[#D5C7AD]
+                                    text-[#4C2325]
+                                    transition
+                                    hover:bg-[#D5C7AD33]
+                                "
+                            >
+                                <FiLogOut className="h-[18px] w-[18px]" aria-hidden="true" />
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            {/* Login */}
+                            <Link
+                                to="/login"
+                                className="
+                                    flex
+                                    w-[36px]
+                                    h-[40px]
+                                    items-center
+                                    justify-center
+                                    font-[Tajawal]
+                                    text-[16px]
+                                    font-medium
+                                    leading-[24px]
+                                    text-right
+                                    text-[#4C2325]
+                                    transition
+                                    hover:opacity-70
+                                "
+                            >
+                                دخول
+                            </Link>
+
+                            {/* Register */}
+                            <Link
+                                to="/register"
+                                className="
+                                    flex
+                                    w-[120.08px]
+                                    h-[40px]
+                                    items-center
+                                    justify-center
+                                    rounded-[8px]
+                                    bg-[#4C2325]
+                                    px-[16px]
+                                    py-[8px]
+                                    font-[Tajawal]
+                                    text-[16px]
+                                    font-medium
+                                    leading-[24px]
+                                    text-right
+                                    text-white
+                                    shadow-[0px_1px_2px_0px_#0000000D]
+                                    transition
+                                    hover:opacity-90
+                                "
+                            >
+                                إنشاء حساب
+                            </Link>
+                        </>
+                    )}
                 </div>
             </div>
         </header>
