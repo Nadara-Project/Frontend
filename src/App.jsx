@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from "./Components/Features/Feature1-Auth/Login";
 import Register from "./Components/Features/Feature1-Auth/Register";
 import ForgotPassword from "./Components/Features/Feature1-Auth/ForgotPassword";

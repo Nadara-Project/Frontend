@@ -11,42 +11,42 @@ const Header = () => {
             path: "/",
             width: "w-[61px]",
             height: "h-[30px]",
-            fontWeight: "font-bold",
+
         },
         {
             name: "الخدمات",
             path: "/services",
             width: "w-[55px]",
             height: "h-[24px]",
-            fontWeight: "font-normal",
+
         },
         {
             name: "حجز موعد",
             path: "/booking",
             width: "w-[64px]",
             height: "h-[24px]",
-            fontWeight: "font-normal",
+
         },
         {
             name: "استشارة أونلاين",
             path: "/online-consultation",
             width: "w-[107px]",
             height: "h-[24px]",
-            fontWeight: "font-normal",
+
         },
         {
             name: "عن العيادة",
             path: "/about",
             width: "w-[70px]",
             height: "h-[24px]",
-            fontWeight: "font-normal",
+
         },
         {
             name: "تواصل معنا",
             path: "/contact",
             width: "w-[78px]",
             height: "h-[24px]",
-            fontWeight: "font-normal",
+
         },
     ];
 
@@ -114,18 +114,17 @@ const Header = () => {
                                     justify-end
                                     font-[Tajawal]
                                     text-[16px]
-                                    ${link.fontWeight}
+                                    ${isActive ? "font-bold" : "font-normal"}
                                     leading-[24px]
                                     tracking-[0px]
                                     text-right
                                     text-[#4C2325]
                                     whitespace-nowrap
                                     transition
-                                    ${
-                                        isActive
-                                            ? "pb-[4px] border-b-[2px] border-[#4C2325]"
-                                            : ""
-                                    }
+                                    ${isActive
+                                    ? "pb-[4px] border-b-[2px] border-[#4C2325]"
+                                    : ""
+                                }
                                 `
                             }
                         >
