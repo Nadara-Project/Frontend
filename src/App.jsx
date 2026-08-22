@@ -1,9 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'; 
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from "./Components/Features/Feature1-Auth/Login";
 import Register from "./Components/Features/Feature1-Auth/Register";
 import ForgotPassword from "./Components/Features/Feature1-Auth/ForgotPassword";
 import CheckEmail from './Components/Features/Feature1-Auth/CheckEmail';
 import Dashboard from './Components/Features/Feature2/Dashboard';
+import AppointmentBooking from "./Components/Features/Feature4/AppointmentBooking";
 
 const isAuthenticated = () => !!localStorage.getItem('auth_token');
 
@@ -13,19 +14,24 @@ function App() {
       <Routes>
         {/* الصفحة الرئيسية للموقع (تظهر واجهة نضارة والخدمات أولاً) */}
         <Route path="/" element={<Dashboard />} />
-        
+
         {/* مسارات المصادقة العامة */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/check-email" element={<CheckEmail />} />
-        
+
         {/* مسار لوحة التحكم المحمي */}
-        <Route 
-          path="/dashboard" 
+        <Route
+          path="/dashboard"
           element={
             isAuthenticated() ? <Dashboard /> : <Navigate to="/login" replace />
-          } 
+          }
+        />
+        {/* حجز موعد */}
+        <Route
+          path="/booking"
+          element={<AppointmentBooking />}
         />
 
         {/* توجيه أي مسار خاطئ إلى الصفحة الرئيسية */}
@@ -34,5 +40,5 @@ function App() {
     </BrowserRouter>
   );
 }
-
+``
 export default App;
