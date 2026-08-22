@@ -5,6 +5,8 @@ import ForgotPassword from "./Components/Features/Feature1-Auth/ForgotPassword";
 import CheckEmail from './Components/Features/Feature1-Auth/CheckEmail';
 import Dashboard from './Components/Features/Feature2/Dashboard';
 import AppointmentBooking from "./Components/Features/Feature4/AppointmentBooking";
+import DermatologyConsultation from "./Components/Features/Feature5/DermatologyConsultation";
+
 
 const isAuthenticated = () => !!localStorage.getItem('auth_token');
 
@@ -32,6 +34,12 @@ function App() {
         <Route
           path="/booking"
           element={<AppointmentBooking />}
+        />
+
+        {/* استشارة اونلاين */}
+        <Route
+          path="/online-consultation"
+          element={<DermatologyConsultation />}
         />
 
         {/* توجيه أي مسار خاطئ إلى الصفحة الرئيسية */}

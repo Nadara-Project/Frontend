@@ -1,9 +1,9 @@
 import Header from "../../../Layouts/Header";
-import BookingHero from "./BookingHero";
+import BookingHero from "./ConsultationHero";
 import LoginRequired from "./LoginRequired";
 import Footer from "../../../Layouts/Footer";
 
-const AppointmentBooking = () => {
+const DermatologyConsultation = () => {
     return (
         <div dir="rtl" className="min-h-screen w-full bg-white">
             <Header />
@@ -18,4 +18,4 @@ const AppointmentBooking = () => {
     );
 };
 
-export default AppointmentBooking;
+export default DermatologyConsultation;
