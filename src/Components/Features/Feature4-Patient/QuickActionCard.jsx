@@ -16,10 +16,7 @@ const cardStyles = `
     transition
 `;
 
-/**
- * بطاقة إجراء سريع. الإجراءات غير الجاهزة تُعرض معطّلة مع وسم "قريباً"
- * بدل أن تنقل المستخدم إلى مسار غير موجود.
- */
+
 const QuickActionCard = ({ icon: Icon, title, description, to, comingSoon = false }) => {
     const content = (
         <>

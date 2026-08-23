@@ -11,7 +11,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-[#F8F9FA]" dir="rtl">
       
   <Header />
-      <main className="flex flex-col gap-12 py-8">
+      <main className="flex flex-col gap-12 py-9">
       
         <Hero />
         <WhyNadara />
