@@ -1,119 +1,123 @@
 import { Link } from "react-router-dom";
-import { FiLogIn } from "react-icons/fi";
+import { FiAlertOctagon } from "react-icons/fi";
 
 const LoginRequired = () => {
     return (
         <section
             dir="rtl"
-            className="w-full
-                      
-                      h-[448px]
-                      pt-[96px]
-                      pb-[96px]
-                      bg-[#D5C7AD1A]
-                      opacity-100"
+            className="
+                w-full
+                bg-[#D5C7AD1A]
+                px-[20px]
+                py-[72px]
+                sm:px-[24px]
+                sm:py-[96px]
+            "
         >
-            <div className="
-                    w-full
-                    max-w-[1280px]
-                    h-[256px]
+            <div
+                className="
                     mx-auto
-                    pr-[24px]
-                    pl-[24px]
-                    opacity-100
-  ">
-                <div className="
-                        w-full
-                        max-w-[448px]
-                        h-[256px]
-                        mx-auto
+                    flex
+                    w-full
+                    max-w-[448px]
+                    flex-col
+                    items-center
+                    gap-[12px]
+                "
+            >
+                {/* Icon */}
+                <div
+                    className="
                         flex
-                        flex-col
+                        h-[64px]
+                        w-[64px]
+                        shrink-0
                         items-center
-                        gap-[12px]
-                        opacity-100
-  ">
-                    {/* Icon */}
-                    <div className="w-[80px]
-                                   h-[80px]
-                                   rounded-full
-                                   bg-[#D5C7AD80]
-                                   flex
-                                   items-center
-                                   justify-center">
-                        <FiLogIn className="text-2xl text-[#4A294B]" />
-                    </div>
-
-                    <div className="w-full max-w-[448px]">
-                        <h2
-                            className="
-                                   w-full
-                                   h-[44px]
-                                   pt-[12px]
-                                   font-[Tajawal]
-                                   text-[24px]
-                                   font-bold
-                                   leading-[32px]
-                                   text-center
-                                   text-[#4C2325]
-        "
-                        >
-                            تسجيل الدخول مطلوب
-                        </h2>
-                    </div>
-
-                    <div className="w-full h-[44px] pb-[20px]">
-                        <p
-                            className="
-                                  w-full
-                                  h-[24px]
-                                  font-[Tajawal]
-                                  text-[16px]
-                                  font-normal
-                                  leading-[24px]
-                                  tracking-[0px]
-                                  text-center
-                                  text-[#4C2325]
-        "
-                        >
-                            يرجى تسجيل الدخول للوصول إلى هذه الصفحة.
-                        </p>
-                    </div>
-
-                    <Link
-                        to="/login"
+                        justify-center
+                        rounded-full
+                        bg-[#D5C7AD80]
+                        sm:h-[80px]
+                        sm:w-[80px]
+                    "
+                >
+                    <FiAlertOctagon
                         className="
-                                w-[176.08px]
-                                h-[52px]
-                                pt-[12px]
-                                pr-[32px]
-                                pb-[12px]
-                                pl-[32px]
-                                rounded-[6px]
-                                bg-[#4C2325]
-                                shadow-[0px_1px_2px_0px_#0000000D]
-                                flex
-                                items-center
-                                justify-center
-    "
-                    >
-                        <span
-                            className="
-                                   w-[112.08px]
-                                   h-[28px]
-                                   font-[Tajawal]
-                                   text-[18px]
-                                   font-medium
-                                   leading-[28px]
-                                   tracking-[0px]
-                                   text-center
-                                   text-white
-        "
-                        >
-                            تسجيل الدخول
-                        </span>
-                    </Link>
+                            h-[32px]
+                            w-[32px]
+                            text-[#4A294B]
+                            sm:h-[40px]
+                            sm:w-[40px]
+                        "
+                    />
                 </div>
+
+                {/* Heading */}
+                <h2
+                    className="
+                        w-full
+                        pt-[8px]
+                        font-[Tajawal]
+                        text-[22px]
+                        font-bold
+                        leading-[32px]
+                        text-center
+                        text-[#4C2325]
+                        sm:pt-[12px]
+                        sm:text-[24px]
+                    "
+                >
+                    تسجيل الدخول مطلوب
+                </h2>
+
+                {/* Description */}
+                <p
+                    className="
+                        w-full
+                        font-[Tajawal]
+                        text-[15px]
+                        font-normal
+                        leading-[24px]
+                        text-center
+                        text-[#4C2325]
+                        sm:text-[16px]
+                    "
+                >
+                    يرجى تسجيل الدخول للوصول إلى هذه الصفحة.
+                </p>
+
+                {/* Login Button */}
+                <Link
+                    to="/login"
+                    className="
+                        mt-[8px]
+                        flex
+                        h-[48px]
+                        w-full
+                        max-w-[176px]
+                        items-center
+                        justify-center
+                        rounded-[6px]
+                        bg-[#4C2325]
+                        px-[24px]
+                        py-[12px]
+                        shadow-[0px_1px_2px_0px_#0000000D]
+                    "
+                >
+                    <span
+                        className="
+                            whitespace-nowrap
+                            font-[Tajawal]
+                            text-[17px]
+                            font-medium
+                            leading-[28px]
+                            text-center
+                            text-white
+                            sm:text-[18px]
+                        "
+                    >
+                        تسجيل الدخول
+                    </span>
+                </Link>
             </div>
         </section>
     );

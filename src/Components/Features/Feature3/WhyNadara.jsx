@@ -39,38 +39,41 @@ const WhyNadara = () => {
         <section
             dir="rtl"
             className="
-               box-border
-            mx-auto
-            h-[441.4px]
-            w-[1280px]
-            border-t
-            border-b
-            border-[#EEEEEE]
-            bg-white
-            px-[16px]
-            pt-[64px]
-            pb-[64px]
+                box-border
+                mx-auto
+                w-full
+                max-w-[1280px]
+                border-t
+                border-b
+                border-[#EEEEEE]
+                bg-white
+                px-4
+                py-12
+                md:px-6
+                md:py-16
             "
         >
             {/* Heading */}
-            <div className="mb-[48px]
-                            h-[68px]
-                            w-[1248px]
-                            text-center
-">
+            <div
+                className="
+                    mx-auto
+                    mb-10
+                    w-full
+                    max-w-[1248px]
+                    text-center
+                    md:mb-12
+                "
+            >
                 <h2
                     className="
-                       w-[1248px]
-                       h-[36px]
-                       font-[Tajawal]
-                       text-[30px]
-                       font-bold
-                       leading-[36px]
-                       tracking-[0px]
-                       text-center
-                       align-middle
-                       text-[#4C2325];
-]
+                        font-[Tajawal]
+                        text-[24px]
+                        font-bold
+                        leading-[32px]
+                        text-center
+                        text-[#4C2325]
+                        md:text-[30px]
+                        md:leading-[36px]
                     "
                 >
                     لماذا نظارة؟
@@ -78,17 +81,16 @@ const WhyNadara = () => {
 
                 <p
                     className="
-                        mt-[8px]
-                        w-[1248px]
-                        h-[24px]
+                        mt-2
+                        w-full
                         font-[Tajawal]
-                        text-[16px]
+                        text-[14px]
                         font-normal
-                        leading-[24px]
-                        tracking-[0px]
+                        leading-[22px]
                         text-center
-                        align-middle
                         text-[#4C2325]
+                        md:text-[16px]
+                        md:leading-[24px]
                     "
                 >
                     صممنا كل خطوة لتقليل التنقل والانتظار والحفاظ على سجلك الطبي بأمان.
@@ -98,11 +100,14 @@ const WhyNadara = () => {
             {/* Cards Container */}
             <div
                 className="
-                   mx-auto
-                   flex
-                    h-[195.4px]
-                    w-[1248px]
-                    gap-[24px]
+                    mx-auto
+                    grid
+                    w-full
+                    max-w-[1248px]
+                    grid-cols-1
+                    gap-6
+                    sm:grid-cols-2
+                    lg:grid-cols-4
                 "
             >
                 {features.map((feature) => (

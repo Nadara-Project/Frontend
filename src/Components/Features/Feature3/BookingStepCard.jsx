@@ -4,8 +4,8 @@ const BookingStepCard = ({ number, title, description }) => {
             dir="rtl"
             className="
                 flex
-                h-[162px]
-                w-[294px]
+                w-full
+                min-h-[162px]
                 flex-col
                 items-center
                 gap-[8px]
@@ -15,6 +15,11 @@ const BookingStepCard = ({ number, title, description }) => {
                 bg-white
                 p-[24px]
                 shadow-[0px_1px_2px_0px_#0000000D]
+
+                sm:w-[calc(50%-12px)]
+
+                lg:w-[294px]
+                lg:h-[162px]
             "
         >
             {/* Number */}
@@ -41,8 +46,6 @@ const BookingStepCard = ({ number, title, description }) => {
             {/* Title */}
             <h3
                 className="
-                   h-[36px]
-                    w-[244px]
                     pt-[8px]
                     font-[Tajawal]
                     text-[18px]
@@ -56,29 +59,22 @@ const BookingStepCard = ({ number, title, description }) => {
                 {title}
             </h3>
 
-            <div
+            {/* Description */}
+            <p
                 className="
-                    h-[20px]
-                    w-[244px]
+                    w-full
+                    max-w-[244px]
+                    font-[Tajawal]
+                    text-[14px]
+                    font-normal
+                    leading-[20px]
+                    tracking-[0px]
+                    text-center
+                    text-[#4C2325]
                 "
             >
-                <p
-                    className="
-                        mx-auto
-                        h-[20px]
-                        w-[206px]
-                        font-[Tajawal]
-                        text-[14px]
-                        font-normal
-                        leading-[20px]
-                        tracking-[0px]
-                        text-center
-                        text-[#4C2325]
-                    "
-                >
-                    {description}
-                </p>
-            </div>
+                {description}
+            </p>
         </div>
     );
 };

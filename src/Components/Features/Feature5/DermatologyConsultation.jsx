@@ -1,5 +1,5 @@
 import Header from "../../../Layouts/Header";
-import BookingHero from "./ConsultationHero";
+import ConsultationHero from "./ConsultationHero";
 import LoginRequired from "./LoginRequired";
 import Footer from "../../../Layouts/Footer";
 
@@ -9,7 +9,7 @@ const DermatologyConsultation = () => {
             <Header />
 
             <main className="w-full">
-                <BookingHero />
+                <ConsultationHero />
                 <LoginRequired />
             </main>
 

@@ -4,16 +4,16 @@ const WhyNadaraCard = ({ icon: Icon, title, description }) => {
             dir="rtl"
             className="
                 flex
-                h-[162px]
-                w-[294px]
+                w-full
+                min-h-[162px]
                 flex-col
                 items-center
-                gap-[8px]
+                gap-2
                 rounded-[16px]
                 border
                 border-[#D5C7AD33]
                 bg-white
-                p-[24px]
+                p-6
                 shadow-[0px_1px_2px_0px_#0000000D]
             "
         >
@@ -37,41 +37,35 @@ const WhyNadaraCard = ({ icon: Icon, title, description }) => {
             {/* Title */}
             <h3
                 className="
-                    h-[28px]
-                    w-[244px]
+                    w-full
                     font-[Tajawal]
-                    text-[18px]
+                    text-[16px]
                     font-bold
-                    leading-[28px]
+                    leading-[24px]
                     text-center
                     text-[#4C2325]
+                    md:text-[18px]
+                    md:leading-[28px]
                 "
             >
                 {title}
             </h3>
 
             {/* Description */}
-            <div
+            <p
                 className="
-                    h-[40px]
-                    w-[244px]
+                    w-full
+                    font-[Tajawal]
+                    text-[13px]
+                    font-normal
+                    leading-[20px]
+                    text-center
+                    text-[#4C2325]
+                    md:text-[14px]
                 "
             >
-                <p
-                    className="
-                        mx-auto
-                        w-[244px]
-                        font-[Tajawal]
-                        text-[14px]
-                        font-normal
-                        leading-[20px]
-                        text-center
-                        text-[#4C2325]
-                    "
-                >
-                    {description}
-                </p>
-            </div>
+                {description}
+            </p>
         </div>
     );
 };

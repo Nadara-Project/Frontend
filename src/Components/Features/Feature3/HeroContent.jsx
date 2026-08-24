@@ -13,16 +13,17 @@ const HeroContent = () => {
             {/* Main Heading */}
             <h1
                 className="
-                    w-[600px]
-                    h-[116px]
-                    pt-[4px]
+                    w-full
                     font-[Tajawal]
-                    text-[48px]
+                    text-[32px]
                     font-bold
-                    leading-[56px]
-                    tracking-[0px]
+                    leading-[42px]
                     text-right
                     text-[#4C2325]
+                    sm:text-[40px]
+                    sm:leading-[50px]
+                    lg:text-[48px]
+                    lg:leading-[56px]
                 "
             >
                 بشرتك تستحق عناية
@@ -33,17 +34,20 @@ const HeroContent = () => {
             {/* Description */}
             <p
                 className="
-                     mt-[24px]
-                     w-[600px]
-                     h-[56px]
-                     font-[Tajawal]
-                     text-[18px]
-                     font-normal
-                     leading-[28px]
-                     tracking-[0px]
-                     text-right
-                     text-[#4C2325]
-    "
+                    mt-5
+                    w-full
+                    font-[Tajawal]
+                    text-[15px]
+                    font-normal
+                    leading-[24px]
+                    text-right
+                    text-[#4C2325]
+                    sm:text-[16px]
+                    sm:leading-[26px]
+                    lg:mt-6
+                    lg:text-[18px]
+                    lg:leading-[28px]
+                "
             >
                 نظارة منصة عيادة رقمية التي تتيح لك حجز موعدك، ودفع قيمة الجلسة،
                 وسؤال طبيبك عن بشرتك من منزلك - بدون طرق طويلة ولا انتظار في الصالة.
@@ -52,76 +56,73 @@ const HeroContent = () => {
             {/* Buttons */}
             <div
                 className="
-        flex
-        w-[600px]
-        h-[68px]
-        gap-[16px]
-        pt-[16px]
-        pl-[227px]
-        opacity-100
-    "
+                    mt-4
+                    flex
+                    w-full
+                    flex-col
+                    gap-3
+                    sm:flex-row
+                    sm:justify-سفشقف
+                    sm:gap-4
+                "
             >
                 {/* Primary Button */}
                 <button
                     className="
-                         flex
-                         w-[188.36px]
-                         h-[52px]
-                         items-center
-                         justify-center
-                         gap-[8px]
-                         rounded-[8px]
-                         bg-[#4C2325]
-                         px-[24px]
-                         py-[12px]
-                         font-[Tajawal]
-                         text-[16px]
-                         leading-[24px]
-                         text-right
-                         text-white
-                         transition
-                         hover:opacity-90
-        "
+                        flex
+                        w-full
+                        items-center
+                        justify-center
+                        gap-2
+                        rounded-[8px]
+                        bg-[#4C2325]
+                        px-6
+                        py-3
+                        font-[Tajawal]
+                        text-[15px]
+                        leading-[24px]
+                        text-white
+                        transition
+                        hover:opacity-90
+                        sm:w-auto
+                        sm:min-w-[188px]
+                        sm:text-[16px]
+                    "
                 >
                     <span>احجز موعدك الآن</span>
 
-                    <FiArrowLeft
-                        className="
-                h-[16px]
-                w-[16px]
-            "
-                    />
+                    <FiArrowLeft className="h-4 w-4 shrink-0" />
                 </button>
-
 
                 {/* Secondary Button */}
                 <button
                     className="
-                           flex
-                           w-[169px]
-                           h-[52px]
-                           items-center
-                           justify-center
-                           rounded-[8px]
-                           border-[2px]
-                           border-[#D5C7AD33]
-                           bg-[#D5C7AD33]
-                           px-[24px]
-                           py-[12px]
-                           font-[Tajawal]
-                           text-[16px]
-                           font-bold
-                           leading-[24px]
-                           text-right
-                           text-[#4C2325]
-                           transition
-                           hover:bg-[#D5C7AD55]
-    "
+                        flex
+                        w-full
+                        items-center
+                        justify-center
+                        rounded-[8px]
+                        border-[2px]
+                        border-[#D5C7AD33]
+                        bg-[#D5C7AD33]
+                        px-6
+                        py-3
+                        font-[Tajawal]
+                        text-[15px]
+                        font-bold
+                        leading-[24px]
+                        text-[#4C2325]
+                        transition
+                        hover:bg-[#D5C7AD55]
+                        sm:w-auto
+                        sm:min-w-[169px]
+                        sm:text-[16px]
+                    "
                 >
                     استشارة أونلاين
                 </button>
             </div>
-        </div >
+        </div>
     );
 };
 

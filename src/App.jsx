@@ -6,6 +6,9 @@ import CheckEmail from './Components/Features/Feature1-Auth/CheckEmail';
 import Home from './Components/Features/Feature2/Dashboard';
 import PatientDashboard from './Components/Features/Feature4-Patient/PatientDashboard';
 import ProtectedRoute from './Components/Common/ProtectedRoute';
+import AppointmentBooking from "./Components/Features/Feature4/AppointmentBooking";
+import DermatologyConsultation from "./Components/Features/Feature5/DermatologyConsultation";
+import AboutClinic from "./Components/Features/Feature6/AboutClinic";
 
 function App() {
   return (
@@ -30,9 +33,28 @@ function App() {
           }
         />
 
+
+
+        <Route
+          path="/booking"
+          element={<AppointmentBooking />}
+        />
+
+        <Route
+          path="/online-consultation"
+          element={<DermatologyConsultation />}
+        />
+
+        <Route
+          path="/about"
+          element={<AboutClinic />}
+        />
+
         {/* توجيه أي مسار خاطئ إلى الصفحة الرئيسية */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+
     </BrowserRouter>
   );
 }

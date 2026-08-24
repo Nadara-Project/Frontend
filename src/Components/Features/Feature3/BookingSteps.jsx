@@ -25,36 +25,39 @@ const BookingSteps = () => {
     ];
 
     return (
-        <section dir="rtl" className="mx-auto
-        w-[1280px]
-        h-[374px]
-        px-[16px]
-        pt-[64px]
-        pb-[64px]
-        bg-[#D5C7AD1A]
-    
-">
+        <section
+            dir="rtl"
+            className="
+                mx-auto
+                w-full
+                bg-[#D5C7AD1A]
+                px-4
+                py-16
+
+                lg:h-[374px]
+            "
+        >
             <div
                 className="
-                     mx-auto
-                     h-[246px]
-                     w-[1248px]
-                     max-w-[1280px]
-                     gap-[48px]
-    "
+                    mx-auto
+                    w-full
+                    max-w-[1248px]
+                "
             >
                 {/* Heading */}
-
                 <h2
                     className="
-                    mb-[40px]
-                    text-center
-                    font-[Tajawal]
-                    text-[30px]
-                    font-bold
-                    leading-[36px]
-                    text-[#39243D]
-                "
+                        mb-[40px]
+                        text-center
+                        font-[Tajawal]
+                        text-[30px]
+                        font-bold
+                        leading-[36px]
+                        text-[#39243D]
+
+                        max-sm:text-[24px]
+                        max-sm:leading-[32px]
+                    "
                 >
                     كيف تحجز في ٤ خطوات
                 </h2>
@@ -62,12 +65,13 @@ const BookingSteps = () => {
                 {/* Cards Container */}
                 <div
                     className="
-                    mx-auto
-                    flex
-                    h-[162px]
-                    w-[1248px]
-                    gap-[24px]
-                "
+                        mx-auto
+                        flex
+                        w-full
+                        flex-wrap
+                        justify-center
+                        gap-[24px]
+                    "
                 >
                     {steps.map((step) => (
                         <BookingStepCard

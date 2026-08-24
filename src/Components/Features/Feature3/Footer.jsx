@@ -6,61 +6,55 @@ import Copyright from "./CopyRight";
 
 const Footer = () => {
   return (
-    <footer dir="rtl" className="mx-auto
-    w-[1280px]
-    h-[670.25px]
-    pt-[64px]
-    border-t
-    border-[#D5C7AD33]
-    bg-white
-    opacity-100">
-
-      <div className="mx-auto
-            w-[1280px]
-            h-[605.25px]
-            max-w-[1280px]
-            flex
-            flex-col
-            gap-[48px] "
+    <footer
+      dir="rtl"
+      className="
+                mx-auto
+                w-full
+                border-t
+                border-[#D5C7AD33]
+                bg-white
+                pt-10
+                md:pt-16
+            "
+    >
+      <div
+        className="
+                    mx-auto
+                    flex
+                    w-full
+                    max-w-[1280px]
+                    flex-col
+                    gap-10
+                    px-4
+                    md:gap-12
+                    md:px-8
+                "
       >
-        {/* CTA Banner */}
+        {/* CTA */}
         <FooterCTA />
 
         {/* Footer Columns */}
         <div
           className="
-                    mx-auto
-                    grid
-                    w-[1216px]
-                    h-[242.25px]
-                    grid-cols-3
-                    items-start
-                    gap-[48px]
-                    pb-[48px]
-                    rotate-0
-                    opacity-100
-                "
+                        grid
+                        w-full
+                        grid-cols-1
+                        gap-8
+                        pb-8
+                        md:grid-cols-3
+                        md:gap-12
+                        md:pb-12
+                    "
         >
-          {/* Right */}
-          <div className="col-start-1">
-            <BrandInfo />
-          </div>
-
-          {/* Center */}
-          <div className="col-start-2">
-            <FooterLinks />
-          </div>
-
-          {/* Left */}
-          <div className="col-start-3">
-            <ContactInfo />
-          </div>
+          <BrandInfo />
+          <FooterLinks />
+          <ContactInfo />
         </div>
 
         {/* Copyright */}
         <Copyright />
       </div>
-
     </footer>
   );
 };

@@ -1,5 +1,4 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 
 const FooterCTA = () => {
     const navigate = useNavigate();
@@ -10,133 +9,112 @@ const FooterCTA = () => {
             className="
                 mx-auto
                 flex
-                h-[230px]
-                w-[1216px]
+                w-full
                 flex-col
-                gap-[16px]
-                rounded-[24px]
+                items-center
+                gap-4
+                rounded-2xl
                 bg-[#4C2325]
-                p-[40px]
+                p-6
                 text-white
+                sm:p-8
+                md:rounded-[24px]
+                md:p-10
             "
         >
-            {/* Heading 2 */}
+            {/* Heading */}
             <h2
                 className="
-                    h-[36px]
-                    w-[1136px]
+                    w-full
                     text-center
                     font-[Tajawal]
-                    text-[30px]
+                    text-[22px]
                     font-bold
-                    leading-[36px]
-                    tracking-[0px]
-                    text-[#FFFFFF]
+                    leading-8
+                    text-white
+                    sm:text-[26px]
+                    md:text-[30px]
+                    md:leading-9
                 "
             >
                 جاهز لتبدأ رحلة بشرتك؟
             </h2>
 
             {/* Description */}
-            <div className="h-[24px] w-[1136px]">
-                <p
-                    className="
-                        h-[24px]
-                        w-[445px]
-                        mx-auto
-                        text-center
-                        font-[Tajawal]
-                        text-[16px]
-                        font-normal
-                        leading-[24px]
-                        tracking-[0px]
-                        text-[#FFFFFF]
-                    "
-                >
-                    أنشئ حسابك خلال دقيقة واحجز أول موعد أو أرسل استشارتك الأولى.
-                </p>
-            </div>
+            <p
+                className="
+                    w-full
+                    max-w-[500px]
+                    text-center
+                    font-[Tajawal]
+                    text-[13px]
+                    font-normal
+                    leading-6
+                    text-white
+                    sm:text-[15px]
+                    md:text-[16px]
+                "
+            >
+                أنشئ حسابك خلال دقيقة واحجز أول موعد أو أرسل استشارتك الأولى.
+            </p>
 
-            {/* Buttons Container */}
+            {/* Buttons */}
             <div
                 className="
                     flex
-                    h-[58px]
-                    w-[1136px]
-                    flex-row
-                    justify-center
-                    gap-[16px]
-                    pt-[16px]
+                    w-full
+                    flex-col
+                    gap-3
+                    sm:w-auto
+                    sm:flex-row
                 "
             >
-                {/* تواصل مع العيادة */}
                 <button
                     className="
                         flex
                         h-[42px]
-                        w-[168.91px]
+                        w-full
                         items-center
                         justify-center
-                        rounded-[8px]
+                        rounded-lg
                         border
                         border-[#D5C7AD]
                         bg-[#D5C7AD33]
-                        px-[24px]
-                        py-[8px]
-                        cursor-pointer
+                        px-6
+                        py-2
+                        font-[Tajawal]
+                        text-[15px]
+                        font-medium
+                        text-white
+                        sm:w-auto
                     "
                 >
-                    <span
-                        className="
-                            h-[24px]
-                            w-[118.91px]
-                            text-center
-                            font-[Tajawal]
-                            text-[16px]
-                            font-medium
-                            leading-[24px]
-                            tracking-[0px]
-                            text-[#FFFFFF]
-                        "
-                    >
-                        تواصل مع العيادة
-                    </span>
+                    تواصل مع العيادة
                 </button>
 
-                {/* إنشاء حساب - يوجه لصفحة التسجيل */}
                 <button
-                    onClick={() => navigate('/register')}
+                    onClick={() => navigate("/register")}
                     className="
                         flex
                         h-[42px]
-                        w-[141px]
+                        w-full
                         items-center
                         justify-center
-                        rounded-[8px]
+                        rounded-lg
                         bg-[#D5C7AD]
-                        px-[24px]
-                        py-[8px]
+                        px-6
+                        py-2
+                        font-[Tajawal]
+                        text-[15px]
+                        font-bold
+                        text-[#4C2325]
                         shadow-[0px_1px_2px_0px_#0000000D]
-                        cursor-pointer
-                        hover:bg-[#c5b79d]
                         transition-colors
+                        hover:bg-[#c5b79d]
+                        sm:w-auto
                     "
                 >
-                    <span
-                        className="
-                            h-[24px]
-                            w-[93px]
-                            text-center
-                            font-[Tajawal]
-                            text-[16px]
-                            font-bold
-                            leading-[24px]
-                            tracking-[0px]
-                            text-[#4C2325]
-                        "
-                    >
-                        إنشاء حساب
-                    </span>
+                    إنشاء حساب
                 </button>
             </div>
         </div>

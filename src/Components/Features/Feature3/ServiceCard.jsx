@@ -9,40 +9,42 @@ const ServiceCard = ({
         <div
             dir="rtl"
             className="
-              flex
-              h-[211px]
-              w-[400px]
-              flex-col
-              gap-[16px]
-              rounded-[16px]
-              border
-              border-[#D5C7AD33]
-              bg-[#D5C7AD1A]
-              p-[24px]
+                flex
+                w-full
+                max-w-[400px]
+                min-h-[211px]
+                mx-auto
+                flex-col
+                gap-4
+                rounded-[16px]
+                border
+                border-[#D5C7AD33]
+                bg-[#D5C7AD1A]
+                p-6
             "
         >
             {/* Top */}
             <div
                 className="
                     flex
-                    h-[28px]
-                    w-[350px]
+                    w-full
+                    min-h-[28px]
                     items-center
                     justify-between
+                    gap-3
                 "
             >
                 {/* Title */}
                 <h3
                     className="
-                       h-[28px]
-                       w-[162.5px]
-                       font-[Tajawal]
-                       text-[20px]
-                       font-bold
-                       leading-[28px]
-                       tracking-[0px]
-                       text-right
-                       text-[#4C2325]
+                        min-w-0
+                        font-[Tajawal]
+                        text-[18px]
+                        font-bold
+                        leading-[28px]
+                        text-right
+                        text-[#4C2325]
+                        md:text-[20px]
                     "
                 >
                     {title}
@@ -51,45 +53,35 @@ const ServiceCard = ({
                 {/* Category */}
                 <span
                     className="
-                  h-[24px]
-                  w-[63px]
-                  rounded-[4px]
-                  bg-[#D5C7AD80]
-                  px-[8px]
-                  py-[4px]
-                  font-[Tajawal]
-                  text-[12px]
-                  font-bold
-                  leading-[16px]
-                  tracking-[0px]
-                  text-right
-                  text-[#4C2325]
+                        shrink-0
+                        rounded-[4px]
+                        bg-[#D5C7AD80]
+                        px-2
+                        py-1
+                        font-[Tajawal]
+                        text-[12px]
+                        font-bold
+                        leading-[16px]
+                        text-right
+                        text-[#4C2325]
                     "
                 >
                     {category}
                 </span>
             </div>
 
-            {/* Description Container */}
-            <div
-                className="
-                      h-[56px]
-                      w-[350px]
-                      pb-[16px]
-    "
-            >
+            {/* Description */}
+            <div className="w-full">
                 <p
                     className="
-                   h-[40px]
-                   w-[330px]
-                   font-[Tajawal]
-                   text-[14px]
-                   font-normal
-                   leading-[20px]
-                   tracking-[0px]
-                    text-right
-                   text-[#4C2325]
-        "
+                        w-full
+                        font-[Tajawal]
+                        text-[14px]
+                        font-normal
+                        leading-[20px]
+                        text-right
+                        text-[#4C2325]
+                    "
                 >
                     {description}
                 </p>
@@ -98,18 +90,17 @@ const ServiceCard = ({
             {/* Bottom */}
             <div
                 className="
-                   flex
-                   w-[350px]
-                   h-[45px]
-                   justify-between
-                   pt-[16px]
-                   border-t-[1px]
-                   border-t-[#EEEEEE]
-                   opacity-100
-                   rotate-0
+                    mt-auto
+                    flex
+                    min-h-[45px]
+                    w-full
+                    items-center
+                    justify-between
+                    border-t
+                    border-[#EEEEEE]
+                    pt-4
                 "
             >
-                {/* Duration */}
                 {/* Duration */}
                 <div
                     className="
@@ -144,10 +135,11 @@ const ServiceCard = ({
                     dir="ltr"
                     className="
                         font-[Tajawal]
-                        text-[16px]
+                        text-[15px]
                         font-bold
                         leading-[24px]
                         text-[#39243D]
+                        md:text-[16px]
                     "
                 >
                     {price}

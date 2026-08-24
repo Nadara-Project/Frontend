@@ -29,61 +29,70 @@ const Services = () => {
     ];
 
     return (
-
         <section
             dir="rtl"
             className="
-               mx-auto
-               w-[1280px]
-               h-[448px]
-               px-[16px]
-               pt-[64px]
-               pb-[64px]
-               border-t
-               border-[#EEEEEE]
-               bg-white
+                mx-auto
+                w-full
+                max-w-[1280px]
+                border-t
+                border-[#EEEEEE]
+                bg-white
+                px-4
+                py-12
+                md:px-6
+                md:py-16
             "
         >
-            <div className="mx-auto
-                            w-[1248px]
-                            h-[319px]
-                            max-w-[1280px]
-                            flex
-                            flex-col
-                            gap-[40px]">
+            <div
+                className="
+                    mx-auto
+                    flex
+                    w-full
+                    max-w-[1248px]
+                    flex-col
+                    gap-8
+                    md:gap-10
+                "
+            >
                 {/* Header */}
                 <div
                     className="
-                   
-                    flex
-                    w-full
-                    items-start
-                    justify-between
-                "
+                        flex
+                        w-full
+                        flex-col
+                        items-start
+                        gap-4
+                        sm:flex-row
+                        sm:items-center
+                        sm:justify-between
+                    "
                 >
                     {/* Title */}
-                    <div className="text-right">
+                    <div className="w-full text-right sm:w-auto">
                         <h2
                             className="
-                            font-[Tajawal]
-                            text-[30px]
-                            font-bold
-                            leading-[36px]
-                            text-[#39243D]
-                        "
+                                font-[Tajawal]
+                                text-[24px]
+                                font-bold
+                                leading-[32px]
+                                text-[#39243D]
+                                md:text-[30px]
+                                md:leading-[36px]
+                            "
                         >
                             خدمات مختارة
                         </h2>
 
                         <p
                             className="
-                            mt-[8px]
-                            font-[Tajawal]
-                            text-[14px]
-                            font-normal
-                            leading-[20px]
-                            text-[#39243D]
-                        "
+                                mt-2
+                                font-[Tajawal]
+                                text-[14px]
+                                font-normal
+                                leading-[20px]
+                                text-[#39243D]
+                            "
                         >
                             الأسعار والمدد يحددها فريق العيادة بشكل مستمر.
                         </p>
@@ -92,17 +101,18 @@ const Services = () => {
                     {/* All Services Button */}
                     <button
                         className="
-                        rounded-[8px]
-                        border
-                        border-[#4C2325]
-                        px-[16px]
-                        py-[8px]
-                        font-[Tajawal]
-                        text-[14px]
-                        font-bold
-                        leading-[20px]
-                        text-[#4C2325]
-                    "
+                            shrink-0
+                            rounded-[8px]
+                            border
+                            border-[#4C2325]
+                            px-4
+                            py-2
+                            font-[Tajawal]
+                            text-[14px]
+                            font-bold
+                            leading-[20px]
+                            text-[#4C2325]
+                        "
                     >
                         كل الخدمات
                     </button>
@@ -111,11 +121,13 @@ const Services = () => {
                 {/* Services Cards */}
                 <div
                     className="
-                    
-                    flex
-                    w-full
-                    gap-[24px]
-                "
+                        grid
+                        w-full
+                        grid-cols-1
+                        gap-6
+                        sm:grid-cols-2
+                        lg:grid-cols-3
+                    "
                 >
                     {services.map((service) => (
                         <ServiceCard
@@ -129,8 +141,7 @@ const Services = () => {
                     ))}
                 </div>
             </div>
-        </section >
-
+        </section>
     );
 };
 
