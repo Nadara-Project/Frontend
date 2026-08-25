@@ -215,7 +215,7 @@ const Header = () => {
                                     justify-center
                                     rounded-[8px]
                                     bg-[#4C2325]
-                                    px-[16px]
+                                    px-[16px]m
                                     py-[8px]
                                     font-[Tajawal]
                                     text-[16px]
