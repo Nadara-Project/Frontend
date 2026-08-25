@@ -6,6 +6,8 @@ import CheckEmail from './Components/Features/Feature1-Auth/CheckEmail';
 import Home from './Components/Features/Feature2/Dashboard';
 import PatientDashboard from './Components/Features/Feature4-Patient/PatientDashboard';
 import ProtectedRoute from './Components/Common/ProtectedRoute';
+import ServicesPage from "./Components/Features/Feature1-Auth/ServicesPage";
+import ContactUs from "./Components/Features/Feature1-Auth/ContactUs";
 
 function App() {
   return (
@@ -19,6 +21,8 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/check-email" element={<CheckEmail />} />
+         <Route path="/services" element={<ServicesPage />} />
+         <Route path="/contact" element={<ContactUs />} />
 
         {/* لوحة المريض بعد تسجيل الدخول */}
         <Route
