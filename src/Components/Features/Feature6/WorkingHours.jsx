@@ -49,7 +49,7 @@ const WorkingHours = () => {
                         flex
                         w-full
                         items-center
-                        justify-end
+                        justify-start
                         gap-[12px]
                         sm:mb-[36px]
                     "

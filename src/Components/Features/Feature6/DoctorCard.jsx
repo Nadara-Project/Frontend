@@ -39,7 +39,7 @@ const DoctorCard = ({ name, specialty, initials }) => {
 
             {/* Doctor Information */}
             <div
-                dir="rtl"
+
                 className="
                     flex
                     min-w-0
