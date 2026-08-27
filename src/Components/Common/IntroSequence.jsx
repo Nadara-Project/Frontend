@@ -51,6 +51,11 @@ const shouldPlay = () => {
         return false;
     }
 
+    // ?intro=1 يعيد تشغيلها في أي وقت، للمراجعة داخل الفريق
+    if (new URLSearchParams(window.location.search).get("intro") === "1") {
+        return true;
+    }
+
     try {
         return !window.sessionStorage.getItem(SESSION_KEY);
     } catch {
@@ -159,12 +164,15 @@ const IntroSequence = () => {
             el.style.opacity = "0";
         });
 
-        const finish = () => {
+        // إزالة فقط: تُستدعى أيضاً عند تنظيف التأثير، وتنظيف React
+        // في وضع StrictMode لا يعني أن المقدمة انتهت
+        const teardown = () => {
             if (done) return;
             done = true;
 
             timers.forEach(clearTimeout);
             animations.forEach((animation) => animation.cancel());
+            if (cancelShine) cancelShine();
 
             markEl.style.opacity = "";
             textEl.style.opacity = "";
@@ -173,6 +181,11 @@ const IntroSequence = () => {
             });
 
             document.body.style.overflow = previousOverflow;
+        };
+
+        // انتهاء فعلي للمقدمة: لا تظهر مرة أخرى في هذه الجلسة
+        const finish = () => {
+            teardown();
 
             try {
                 window.sessionStorage.setItem(SESSION_KEY, "1");
@@ -183,10 +196,7 @@ const IntroSequence = () => {
             setActive(false);
         };
 
-        const skip = () => {
-            if (cancelShine) cancelShine();
-            finish();
-        };
+        const skip = finish;
 
         skipRef.current = skip;
 
@@ -338,8 +348,7 @@ const IntroSequence = () => {
             window.removeEventListener("keydown", skip);
             window.removeEventListener("resize", onResize);
             skipRef.current = null;
-            if (cancelShine) cancelShine();
-            finish();
+            teardown();
         };
     }, [active]);
 
@@ -366,7 +375,31 @@ const IntroSequence = () => {
                     backgroundImage:
                         "radial-gradient(120% 130% at 50% 44%, #5A3330 0%, #3A1D1F 38%, #221113 72%, #150A0B 100%)",
                 }}
-            />
+            >
+                {/* داخل الستارة ليختفي معها بدل أن يبقى معلّقاً فوق الصفحة */}
+                <button
+                    type="button"
+                    onClick={() => skipRef.current?.()}
+                    className="
+                        absolute
+                        bottom-6
+                        left-1/2
+                        -translate-x-1/2
+                        rounded-full
+                        border
+                        border-[#D5C7AD40]
+                        px-5
+                        py-2
+                        font-[Tajawal]
+                        text-[13px]
+                        text-[#D5C7AD]
+                        transition
+                        hover:bg-[#D5C7AD1A]
+                    "
+                >
+                    تخطّي
+                </button>
+            </div>
 
             {/* الشعار الطائر */}
             <div
@@ -482,29 +515,6 @@ const IntroSequence = () => {
                 </div>
             </div>
 
-            {/* تخطّي */}
-            <button
-                type="button"
-                onClick={() => skipRef.current?.()}
-                className="
-                    absolute
-                    bottom-6
-                    left-1/2
-                    -translate-x-1/2
-                    rounded-full
-                    border
-                    border-[#D5C7AD40]
-                    px-5
-                    py-2
-                    font-[Tajawal]
-                    text-[13px]
-                    text-[#D5C7AD]
-                    transition
-                    hover:bg-[#D5C7AD1A]
-                "
-            >
-                تخطّي
-            </button>
         </div>
     );
 };
