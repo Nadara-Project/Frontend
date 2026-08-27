@@ -77,11 +77,12 @@ const Register = () => {
         phone: values.phone,
         password: values.password,
         password_confirmation: values.confirmPassword,
+        device_name: "web", // <-- تم إضافة حقل device_name هنا ليتطابق مع متطلبات الـ API
       });
 
       navigate("/dashboard", { replace: true });
     } catch (error) {
-      if (error.status === 422) {
+      if (error.status === 422 && error.errors) {
         Object.entries(error.errors).forEach(
           ([serverField, messages]) => {
             const field = serverFieldMap[serverField];
@@ -117,17 +118,17 @@ const Register = () => {
       <main className="flex-1 w-full flex items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
         <div
           className="
-                        w-full
-                        max-w-[446px]
-                        bg-white
-                        rounded-[16px]
-                        border
-                        border-[#E2E8F0]
-                        shadow-sm
-                        flex
-                        flex-col
-                        overflow-hidden
-                    "
+                    w-full
+                    max-w-[446px]
+                    bg-white
+                    rounded-[16px]
+                    border
+                    border-[#E2E8F0]
+                    shadow-sm
+                    flex
+                    flex-col
+                    overflow-hidden
+                "
         >
           <Header
             title="إنشاء حساب"
@@ -138,14 +139,14 @@ const Register = () => {
             onSubmit={handleSubmit(onSubmit)}
             noValidate
             className="
-                            flex
-                            flex-col
-                            gap-[16px]
-                            px-4
-                            pb-5
-                            sm:px-6
-                            sm:pb-6
-                        "
+                        flex
+                        flex-col
+                        gap-[16px]
+                        px-4
+                        pb-5
+                        sm:px-6
+                        sm:pb-6
+                    "
           >
             {formError && (
               <div

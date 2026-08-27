@@ -16,15 +16,26 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const redirectTo = location.state?.from ?? "/dashboard";
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage("");
     setIsLoading(true);
 
     try {
-      await auth.login(email, password);
+      // auth.login تُرجع كائن الـ user مباشرة بناءً على التعديل في api-client.js
+      const user = await auth.login(email, password);
+
+      // تحديد مسار التوجيه بناءً على دور المستخدم (role) أو الاعتماد على location.state قادم من صفحة محمية
+      let defaultRedirect = "/dashboard";
+      if (user?.role === "admin") {
+        defaultRedirect = "/admin/dashboard"; // أو لوحة تحكم الأدمن الخاصة بكِ
+      } else if (user?.role === "doctor") {
+        defaultRedirect = "/doctor/dashboard"; // أو لوحة تحكم الدكتور
+      } else if (user?.role === "patient") {
+        defaultRedirect = "/patient/profile"; // أو صفحة المريض
+      }
+
+      const redirectTo = location.state?.from ?? defaultRedirect;
       navigate(redirectTo, { replace: true });
     } catch (error) {
       if (error.status === 422) {
@@ -52,17 +63,17 @@ const Login = () => {
       <main className="flex-1 w-full flex items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
         <div
           className="
-                        w-full
-                        max-w-[446px]
-                        bg-white
-                        rounded-[16px]
-                        border
-                        border-[#E2E8F0]
-                        shadow-sm
-                        flex
-                        flex-col
-                        overflow-hidden
-                    "
+                    w-full
+                    max-w-[446px]
+                    bg-white
+                    rounded-[16px]
+                    border
+                    border-[#E2E8F0]
+                    shadow-sm
+                    flex
+                    flex-col
+                    overflow-hidden
+                "
         >
           <Header
             title="تسجيل الدخول"
@@ -101,16 +112,16 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="
-                                    w-full
-                                    h-[53px]
-                                    px-[16px]
-                                    border
-                                    border-[#9E9E9E]
-                                    rounded-[8px]
-                                    text-[14px]
-                                    focus:outline-none
-                                    focus:border-[#4C2325]
-                                "
+                                            w-full
+                                            h-[53px]
+                                            px-[16px]
+                                            border
+                                            border-[#9E9E9E]
+                                            rounded-[8px]
+                                            text-[14px]
+                                            focus:outline-none
+                                            focus:border-[#4C2325]
+                                        "
               />
             </div>
 
@@ -130,17 +141,17 @@ const Login = () => {
                   }
                   required
                   className="
-                                        w-full
-                                        h-[53px]
-                                        px-[16px]
-                                        pl-[45px]
-                                        border
-                                        border-[#9E9E9E]
-                                        rounded-[8px]
-                                        text-[14px]
-                                        focus:outline-none
-                                        focus:border-[#4C2325]
-                                    "
+                                                w-full
+                                                h-[53px]
+                                                px-[16px]
+                                                pl-[45px]
+                                                border
+                                                border-[#9E9E9E]
+                                                rounded-[8px]
+                                                text-[14px]
+                                                focus:outline-none
+                                                focus:border-[#4C2325]
+                                            "
                 />
 
                 <button
@@ -162,15 +173,15 @@ const Login = () => {
             {/* Remember / Forgot */}
             <div
               className="
-                                flex
-                                flex-wrap
-                                items-center
-                                justify-between
-                                gap-3
-                                text-[13px]
-                                sm:text-[14px]
-                                text-[#2B2527]
-                            "
+                                    flex
+                                    flex-wrap
+                                    items-center
+                                    justify-between
+                                    gap-3
+                                    text-[13px]
+                                    sm:text-[14px]
+                                    text-[#2B2527]
+                                "
             >
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
@@ -196,21 +207,21 @@ const Login = () => {
               type="submit"
               disabled={isLoading}
               className="
-                                w-full
-                                min-h-[48px]
-                                bg-[#4C2325]
-                                hover:bg-[#36181A]
-                                text-white
-                                font-medium
-                                rounded-[8px]
-                                transition-colors
-                                cursor-pointer
-                                disabled:opacity-50
-                                mt-2
-                                font-[Tajawal]
-                                text-[14px]
-                                sm:text-[16px]
-                            "
+                                    w-full
+                                    min-h-[48px]
+                                    bg-[#4C2325]
+                                    hover:bg-[#36181A]
+                                    text-white
+                                    font-medium
+                                    rounded-[8px]
+                                    transition-colors
+                                    cursor-pointer
+                                    disabled:opacity-50
+                                    mt-2
+                                    font-[Tajawal]
+                                    text-[14px]
+                                    sm:text-[16px]
+                                "
             >
               {isLoading
                 ? "جاري تسجيل الدخول..."

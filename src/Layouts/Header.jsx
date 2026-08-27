@@ -1,13 +1,11 @@
 import { Link, NavLink } from "react-router-dom";
-import { FiLogOut, FiMenu, FiX } from "react-icons/fi";
-import { useAuth } from "../hooks/useAuth";
+import { FiMenu, FiX } from "react-icons/fi";
 import { useState } from "react";
 
 const Header = () => {
-    const { user, isAuthenticated, logout } = useAuth();
-
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+    // الروابط الأساسية في الناف بار متضمنة "ماي بروفايل"
     const navLinks = [
         {
             name: "الرئيسية",
@@ -32,6 +30,10 @@ const Header = () => {
         {
             name: "تواصل معنا",
             path: "/contact",
+        },
+        {
+            name: "حسابي",
+            path: "/user-profile", 
         },
     ];
 
@@ -68,7 +70,6 @@ const Header = () => {
                     lg:py-[16px]
                 "
             >
-
                 {/* Logo */}
                 <Link to="/" onClick={closeMenu}>
                     <img
@@ -83,16 +84,14 @@ const Header = () => {
                     />
                 </Link>
 
-
                 {/* ================= DESKTOP NAV ================= */}
-
                 <nav
                     className="
                         hidden
                         lg:flex
                         h-[30px]
-                        w-[555px]
-                        gap-[24px]
+                        gap-[20px]
+                        items-center
                     "
                 >
                     {navLinks.map((link) => (
@@ -106,7 +105,8 @@ const Header = () => {
                                 justify-end
                                 whitespace-nowrap
                                 font-[Tajawal]
-                                text-[16px]
+                                text-[15px]
+                                lg:text-[16px]
                                 leading-[24px]
                                 text-right
                                 text-[#4C2325]
@@ -124,9 +124,7 @@ const Header = () => {
                     ))}
                 </nav>
 
-
                 {/* ================= DESKTOP AUTH ================= */}
-
                 <div
                     className="
                         hidden
@@ -136,105 +134,51 @@ const Header = () => {
                         gap-[16px]
                     "
                 >
-                    {isAuthenticated ? (
-                        <>
-                            <NavLink
-                                to="/dashboard"
-                                className="
-                                    flex
-                                    h-[40px]
-                                    items-center
-                                    justify-center
-                                    rounded-[8px]
-                                    bg-[#4C2325]
-                                    px-[16px]
-                                    py-[8px]
-                                    font-[Tajawal]
-                                    text-[16px]
-                                    font-medium
-                                    leading-[24px]
-                                    whitespace-nowrap
-                                    text-white
-                                    shadow-[0px_1px_2px_0px_#0000000D]
-                                    transition
-                                    hover:opacity-90
-                                "
-                            >
-                                {user?.name?.trim().split(/\s+/)[0] ?? "حسابي"}
-                            </NavLink>
+                    <Link
+                        to="/login"
+                        className="
+                            flex
+                            h-[40px]
+                            w-[36px]
+                            items-center
+                            justify-center
+                            font-[Tajawal]
+                            text-[16px]
+                            font-medium
+                            text-[#4C2325]
+                            transition
+                            hover:opacity-70
+                        "
+                    >
+                        دخول
+                    </Link>
 
-                            <button
-                                type="button"
-                                onClick={logout}
-                                aria-label="تسجيل الخروج"
-                                className="
-                                    flex
-                                    h-[40px]
-                                    w-[40px]
-                                    items-center
-                                    justify-center
-                                    rounded-[8px]
-                                    border
-                                    border-[#D5C7AD]
-                                    text-[#4C2325]
-                                    transition
-                                    hover:bg-[#D5C7AD33]
-                                "
-                            >
-                                <FiLogOut className="h-[18px] w-[18px]" />
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <Link
-                                to="/login"
-                                className="
-                                    flex
-                                    h-[40px]
-                                    w-[36px]
-                                    items-center
-                                    justify-center
-                                    font-[Tajawal]
-                                    text-[16px]
-                                    font-medium
-                                    text-[#4C2325]
-                                    transition
-                                    hover:opacity-70
-                                "
-                            >
-                                دخول
-                            </Link>
-
-                            <Link
-                                to="/register"
-                                className="
-                                    flex
-                                    h-[40px]
-                                    w-[130px]
-                                    items-center
-                                    justify-center
-                                    rounded-[8px]
-                                    bg-[#4C2325]
-                                    px-[16px]m
-                                    py-[8px]
-                                    font-[Tajawal]
-                                    text-[16px]
-                                    font-medium
-                                    text-white
-                                    shadow-[0px_1px_2px_0px_#0000000D]
-                                    transition
-                                    hover:opacity-90
-                                "
-                            >
-                                إنشاء حساب
-                            </Link>
-                        </>
-                    )}
+                    <Link
+                        to="/register"
+                        className="
+                            flex
+                            h-[40px]
+                            w-[130px]
+                            items-center
+                            justify-center
+                            rounded-[8px]
+                            bg-[#4C2325]
+                            px-[16px]
+                            py-[8px]
+                            font-[Tajawal]
+                            text-[16px]
+                            font-medium
+                            text-white
+                            shadow-[0px_1px_2px_0px_#0000000D]
+                            transition
+                            hover:opacity-90
+                        "
+                    >
+                        إنشاء حساب
+                    </Link>
                 </div>
 
-
                 {/* ================= MOBILE MENU BUTTON ================= */}
-
                 <button
                     type="button"
                     onClick={() => setIsMenuOpen(true)}
@@ -254,12 +198,9 @@ const Header = () => {
                 >
                     <FiMenu className="h-[24px] w-[24px]" />
                 </button>
-
             </div>
 
-
             {/* ================= OVERLAY ================= */}
-
             {isMenuOpen && (
                 <div
                     onClick={closeMenu}
@@ -273,9 +214,7 @@ const Header = () => {
                 />
             )}
 
-
             {/* ================= MOBILE SIDE MENU ================= */}
-
             <aside
                 className={`
                     fixed
@@ -298,7 +237,6 @@ const Header = () => {
                     }
                 `}
             >
-
                 {/* Side Menu Header */}
                 <div
                     className="
@@ -337,7 +275,6 @@ const Header = () => {
                     </button>
                 </div>
 
-
                 {/* Mobile Navigation */}
                 <nav className="mt-[24px] flex flex-col gap-[8px]">
                     {navLinks.map((link) => (
@@ -370,7 +307,6 @@ const Header = () => {
                     ))}
                 </nav>
 
-
                 {/* Mobile Authentication */}
                 <div
                     className="
@@ -383,95 +319,47 @@ const Header = () => {
                         pt-[24px]
                     "
                 >
-                    {isAuthenticated ? (
-                        <>
-                            <NavLink
-                                to="/dashboard"
-                                onClick={closeMenu}
-                                className="
-                                    flex
-                                    h-[44px]
-                                    items-center
-                                    justify-center
-                                    rounded-[8px]
-                                    bg-[#4C2325]
-                                    font-[Tajawal]
-                                    text-[16px]
-                                    font-medium
-                                    text-white
-                                "
-                            >
-                                {user?.name?.trim().split(/\s+/)[0] ?? "حسابي"}
-                            </NavLink>
+                    <Link
+                        to="/login"
+                        onClick={closeMenu}
+                        className="
+                            flex
+                            h-[44px]
+                            w-1/2
+                            items-center
+                            justify-center
+                            rounded-[8px]
+                            border
+                            border-[#D5C7AD]
+                            font-[Tajawal]
+                            text-[16px]
+                            font-medium
+                            text-[#4C2325]
+                        "
+                    >
+                        دخول
+                    </Link>
 
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    logout();
-                                    closeMenu();
-                                }}
-                                className="
-                                    flex
-                                    h-[44px]
-                                    items-center
-                                    justify-center
-                                    gap-[8px]
-                                    rounded-[8px]
-                                    border
-                                    border-[#D5C7AD]
-                                    font-[Tajawal]
-                                    text-[16px]
-                                    text-[#4C2325]
-                                "
-                            >
-                                <FiLogOut />
-                                تسجيل الخروج
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <Link
-                                to="/login"
-                                onClick={closeMenu}
-                                className="
-                                    flex
-                                    h-[44px]
-                                    items-center
-                                    justify-center
-                                    rounded-[8px]
-                                    border
-                                    border-[#D5C7AD]
-                                    font-[Tajawal]
-                                    text-[16px]
-                                    font-medium
-                                    text-[#4C2325]
-                                "
-                            >
-                                دخول
-                            </Link>
-
-                            <Link
-                                to="/register"
-                                onClick={closeMenu}
-                                className="
-                                    flex
-                                    h-[44px]
-                                    items-center
-                                    justify-center
-                                    rounded-[8px]
-                                    bg-[#4C2325]
-                                    font-[Tajawal]
-                                    text-[16px]
-                                    font-medium
-                                    text-white
-                                "
-                            >
-                                إنشاء حساب
-                            </Link>
-                        </>
-                    )}
+                    <Link
+                        to="/register"
+                        onClick={closeMenu}
+                        className="
+                            flex
+                            h-[44px]
+                            w-1/2
+                            items-center
+                            justify-center
+                            rounded-[8px]
+                            bg-[#4C2325]
+                            font-[Tajawal]
+                            text-[16px]
+                            font-medium
+                            text-white
+                        "
+                    >
+                        إنشاء حساب
+                    </Link>
                 </div>
-
             </aside>
         </header>
     );

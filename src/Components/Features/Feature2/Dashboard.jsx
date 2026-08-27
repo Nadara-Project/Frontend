@@ -12,11 +12,10 @@ const Dashboard = () => {
       
   <Header />
       <main className="flex flex-col gap-12 py-9">
-      
-        <Hero />
-        <WhyNadara />
-        <BookingSteps />
-        <Services />
+      <Hero />
+       < WhyNadara />
+       <BookingSteps />
+       <Services />
       </main>
 
       {/* 3. الفوتر */}

@@ -87,15 +87,29 @@ async function api(path, { method = 'GET', body, auth = true } = {}) {
 
 export const auth = {
   register: async (payload) => {
-    const { data } = await api('/auth/register', { method: 'POST', body: { ...payload, device_name: 'web' }, auth: false });
-    saveSession(data);
-    return data.user;
+    const responseData = await api('/auth/register', { 
+      method: 'POST', 
+      body: { ...payload, device_name: 'web' }, 
+      auth: false 
+    });
+    
+    const sessionData = responseData.data ?? responseData;
+    saveSession(sessionData);
+    return sessionData.user;
   },
+
   login: async (email, password) => {
-    const { data } = await api('/auth/login', { method: 'POST', body: { email, password, device_name: 'web' }, auth: false });
-    saveSession(data);
-    return data.user;
+    const responseData = await api('/auth/login', { 
+      method: 'POST', 
+      body: { email, password, device_name: 'web' }, 
+      auth: false 
+    });
+
+    const sessionData = responseData.data ?? responseData;
+    saveSession(sessionData);
+    return sessionData.user;
   },
+
   forgotPassword: (email) => api('/auth/forgot-password', { method: 'POST', body: { email }, auth: false }),
 
   // إبطال التوكن على الخادم إن أمكن، مع ضمان تنظيف الجلسة محليًا في كل الحالات.

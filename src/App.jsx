@@ -11,7 +11,7 @@ import DermatologyConsultation from "./Components/Features/Feature5/DermatologyC
 import AboutClinic from "./Components/Features/Feature6/AboutClinic";
 import ServicesPage from "./Components/Features/Feature1-Auth/ServicesPage";
 import ContactUs from "./Components/Features/Feature1-Auth/ContactUs";
-
+import UserProfile from "./Components/Features/Feature2/UserProfile";
 
 function App() {
   return (
@@ -27,6 +27,9 @@ function App() {
         <Route path="/check-email" element={<CheckEmail />} />
         <Route path="/services" element={<ServicesPage />} />
         <Route path="/contact" element={<ContactUs />} />
+        
+        {/* صفحة البروفايل */}
+        <Route path="/user-profile" element={<UserProfile />} />
 
         {/* لوحة المريض بعد تسجيل الدخول */}
         <Route
@@ -37,8 +40,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-
 
         <Route
           path="/booking"
@@ -58,8 +59,6 @@ function App() {
         {/* توجيه أي مسار خاطئ إلى الصفحة الرئيسية */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-
-
     </BrowserRouter>
   );
 }
