@@ -13,19 +13,19 @@ import { LOCKUP, MARK, MARK_BOX, TEXT, TEXT_BOX } from "../../assets/nadaraLogo"
 
 // التوقيت المعتمد (بالثواني)
 const T = {
-    appear: 1.25,      // ظهور الشعار المحفور
-    sweepStart: 0.85,  // بداية شعاع الضوء
-    sweepDur: 1.45,    // مدة الشعاع
+    appear: 0.5,       // ظهور الشعار المحفور
+    sweepStart: 0.55,  // بداية شعاع الضوء
+    sweepDur: 0.95,    // مدة الشعاع
     hold: 0.45,        // وقفة قبل الانتقال
-    fly: 1.4,          // مدة انتقال الرمز إلى الهيدر
+    fly: 0.95,         // مدة انتقال الرمز إلى الهيدر
 };
 
 const LOGO_WIDTH = 34;                              // نسبة من عرض الشاشة
 const FLY_EASE = "cubic-bezier(.45,-0.12,.2,1.16)";
 const RISE_EASE = "cubic-bezier(.2,.8,.2,1)";
 
-const FLY_START = Math.max(T.appear, T.sweepStart + T.sweepDur) + T.hold; // 2.75s
-const TOTAL = FLY_START + T.fly;                                          // 4.15s
+const FLY_START = Math.max(T.appear, T.sweepStart + T.sweepDur) + T.hold; // 1.95s
+const TOTAL = FLY_START + T.fly;                                          // 2.90s
 
 const SESSION_KEY = "nadara:intro-seen";
 
