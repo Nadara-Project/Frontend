@@ -1,5 +1,5 @@
 // src/services/api-client.js
-const BASE_URL = 'https://nadara.apps.madafa.net/api/v1';
+const BASE_URL = 'http://127.0.0.1:8000/api/v1';
 
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
@@ -97,6 +97,18 @@ export const auth = {
     return data.user;
   },
   forgotPassword: (email) => api('/auth/forgot-password', { method: 'POST', body: { email }, auth: false }),
+
+  // تعيين كلمة مرور جديدة عبر التوكن القادم في رابط البريد.
+  // الخادم يُبطل كل التوكنات بعد النجاح، لذلك ننظّف الجلسة المحلية أيضًا.
+  resetPassword: async ({ token, email, password, passwordConfirmation }) => {
+    const result = await api('/auth/reset-password', {
+      method: 'POST',
+      body: { token, email, password, password_confirmation: passwordConfirmation },
+      auth: false,
+    });
+    clearSession();
+    return result;
+  },
 
   // إبطال التوكن على الخادم إن أمكن، مع ضمان تنظيف الجلسة محليًا في كل الحالات.
   logout: async () => {

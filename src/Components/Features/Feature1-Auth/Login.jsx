@@ -18,6 +18,9 @@ const Login = () => {
 
   const redirectTo = location.state?.from ?? "/dashboard";
 
+  // رسالة قادمة من مسار آخر (مثل نجاح تعيين كلمة المرور) لتأكيد ما تم للمستخدم.
+  const notice = location.state?.notice ?? "";
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage("");
@@ -81,8 +84,20 @@ const Login = () => {
                             sm:pb-6
                         "
           >
+            {notice && !errorMessage && (
+              <div
+                role="status"
+                className="w-full p-3 bg-[#D5C7AD]/20 border border-[#D5C7AD] rounded-[8px] text-[#4C2325] text-[13px] text-center"
+              >
+                {notice}
+              </div>
+            )}
+
             {errorMessage && (
-              <div className="w-full p-3 bg-red-50 border border-red-200 rounded-[8px] text-red-600 text-[13px] text-center">
+              <div
+                role="alert"
+                className="w-full p-3 bg-red-50 border border-red-200 rounded-[8px] text-red-600 text-[13px] text-center"
+              >
                 {errorMessage}
               </div>
             )}
