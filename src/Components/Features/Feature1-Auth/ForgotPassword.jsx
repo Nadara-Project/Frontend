@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import MainHeader from "../../../Layouts/Header";
 import { auth } from "../../../services/api-client";
 
 const ForgotPassword = () => {
-  const [email, setEmail] = useState("");
+  const location = useLocation();
+
+  // البريد يصل جاهزًا عند العودة من رابط إعادة تعيين منتهي الصلاحية.
+  const [email, setEmail] = useState(location.state?.email ?? "");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 

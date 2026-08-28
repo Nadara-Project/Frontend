@@ -16,6 +16,11 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const redirectTo = location.state?.from ?? "/dashboard";
+
+  // رسالة قادمة من مسار آخر (مثل نجاح تعيين كلمة المرور) لتأكيد ما تم للمستخدم.
+  const notice = location.state?.notice ?? "";
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage("");
@@ -35,8 +40,8 @@ const Login = () => {
         defaultRedirect = "/patient/profile"; // أو صفحة المريض
       }
 
-      const redirectTo = location.state?.from ?? defaultRedirect;
-      navigate(redirectTo, { replace: true });
+      const finalRedirect = location.state?.from ?? defaultRedirect;
+      navigate(finalRedirect, { replace: true });
     } catch (error) {
       if (error.status === 422) {
         setErrorMessage(
@@ -83,17 +88,29 @@ const Login = () => {
           <form
             onSubmit={handleSubmit}
             className="
-                            flex
-                            flex-col
-                            gap-[16px]
-                            px-4
-                            pb-5
-                            sm:px-6
-                            sm:pb-6
-                        "
+                                    flex
+                                    flex-col
+                                    gap-[16px]
+                                    px-4
+                                    pb-5
+                                    sm:px-6
+                                    sm:pb-6
+                                "
           >
+            {notice && !errorMessage && (
+              <div
+                role="status"
+                className="w-full p-3 bg-[#D5C7AD]/20 border border-[#D5C7AD] rounded-[8px] text-[#4C2325] text-[13px] text-center"
+              >
+                {notice}
+              </div>
+            )}
+
             {errorMessage && (
-              <div className="w-full p-3 bg-red-50 border border-red-200 rounded-[8px] text-red-600 text-[13px] text-center">
+              <div
+                role="alert"
+                className="w-full p-3 bg-red-50 border border-red-200 rounded-[8px] text-red-600 text-[13px] text-center"
+              >
                 {errorMessage}
               </div>
             )}
@@ -207,21 +224,21 @@ const Login = () => {
               type="submit"
               disabled={isLoading}
               className="
-                                    w-full
-                                    min-h-[48px]
-                                    bg-[#4C2325]
-                                    hover:bg-[#36181A]
-                                    text-white
-                                    font-medium
-                                    rounded-[8px]
-                                    transition-colors
-                                    cursor-pointer
-                                    disabled:opacity-50
-                                    mt-2
-                                    font-[Tajawal]
-                                    text-[14px]
-                                    sm:text-[16px]
-                                "
+                                            w-full
+                                            min-h-[48px]
+                                            bg-[#4C2325]
+                                            hover:bg-[#36181A]
+                                            text-white
+                                            font-medium
+                                            rounded-[8px]
+                                            transition-colors
+                                            cursor-pointer
+                                            disabled:opacity-50
+                                            mt-2
+                                            font-[Tajawal]
+                                            text-[14px]
+                                            sm:text-[16px]
+                                        "
             >
               {isLoading
                 ? "جاري تسجيل الدخول..."

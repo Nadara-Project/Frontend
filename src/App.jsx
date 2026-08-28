@@ -3,6 +3,7 @@ import Login from "./Components/Features/Feature1-Auth/Login";
 import Register from "./Components/Features/Feature1-Auth/Register";
 import ForgotPassword from "./Components/Features/Feature1-Auth/ForgotPassword";
 import CheckEmail from './Components/Features/Feature1-Auth/CheckEmail';
+import ResetPassword from './Components/Features/Feature1-Auth/ResetPassword';
 import Home from './Components/Features/Feature2/Dashboard';
 import PatientDashboard from './Components/Features/Feature4-Patient/PatientDashboard';
 import ProtectedRoute from './Components/Common/ProtectedRoute';
@@ -25,6 +26,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/check-email" element={<CheckEmail />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/services" element={<ServicesPage />} />
         <Route path="/contact" element={<ContactUs />} />
         
