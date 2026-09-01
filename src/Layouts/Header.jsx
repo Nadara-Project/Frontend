@@ -283,7 +283,7 @@ const Header = () => {
                     z-[70]
                     h-screen
                     w-[280px]
-                    max-w-[85%]
+                    max-w-[85vw]
                     bg-white
                     p-[24px]
                     shadow-[-4px_0_15px_rgba(0,0,0,0.15)]
@@ -430,6 +430,8 @@ const Header = () => {
                                 onClick={closeMenu}
                                 className="
                                     flex
+                                    flex-1
+                                    min-w-0
                                     h-[44px]
                                     items-center
                                     justify-center
@@ -450,6 +452,8 @@ const Header = () => {
                                 onClick={closeMenu}
                                 className="
                                     flex
+                                     flex-1
+                                    min-w-0
                                     h-[44px]
                                     items-center
                                     justify-center
