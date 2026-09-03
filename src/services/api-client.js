@@ -1,5 +1,5 @@
 // src/services/api-client.js
-const BASE_URL = 'http://127.0.0.1:8000/api/v1';
+const BASE_URL = 'https://nadara.apps.madafa.net/api/v1';
 
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
