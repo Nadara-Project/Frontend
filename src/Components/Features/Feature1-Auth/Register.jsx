@@ -27,16 +27,6 @@ const schema = yup.object({
     .required("رقم الهاتف مطلوب")
     .matches(/^[0-9+\s-]{9,15}$/, "رقم الهاتف غير صحيح"),
 
-  date_of_birth: yup
-    .string()
-    .required("تاريخ الميلاد مطلوب")
-    .matches(/^\d{4}-\d{2}-\d{2}$/, "تاريخ الميلاد يجب أن يكون بصيغة YYYY-MM-DD"),
-
-  gender: yup
-    .string()
-    .oneOf(["male", "female"], "الرجاء اختيار الجنس بشكل صحيح")
-    .required("الجنس مطلوب"),
-
   password: yup
     .string()
     .required("كلمة المرور مطلوبة")
@@ -54,8 +44,6 @@ const serverFieldMap = {
   phone: "phone",
   password: "password",
   password_confirmation: "confirmPassword",
-  birth_date: "date_of_birth", // التعديل هنا لربط خطأ السيرفر بحقل الفورم
-  gender: "gender",
 };
 
 const Register = () => {
@@ -74,8 +62,6 @@ const Register = () => {
       name: "",
       email: "",
       phone: "",
-      date_of_birth: "",
-      gender: "",
       password: "",
       confirmPassword: "",
     },
@@ -89,8 +75,6 @@ const Register = () => {
         name: values.name,
         email: values.email,
         phone: values.phone,
-        birth_date: values.date_of_birth, // الإرسال باسم birth_date للسيرفر
-        gender: values.gender,
         password: values.password,
         password_confirmation: values.confirmPassword,
       });
@@ -98,33 +82,53 @@ const Register = () => {
       navigate("/dashboard", { replace: true });
     } catch (error) {
       if (error.status === 422) {
-        Object.entries(error.errors || {}).forEach(([serverField, messages]) => {
-          const field = serverFieldMap[serverField];
+        Object.entries(error.errors).forEach(
+          ([serverField, messages]) => {
+            const field = serverFieldMap[serverField];
 
-          if (field) {
-            setError(field, {
-              type: "server",
-              message: messages[0],
-            });
+            if (field) {
+              setError(field, {
+                type: "server",
+                message: messages[0],
+              });
+            }
           }
-        });
+        );
 
-        setFormError(error.message || "يرجى مراجعة البيانات المدخلة.");
+        setFormError(
+          error.message || "يرجى مراجعة البيانات المدخلة."
+        );
       } else {
         setFormError(
           error.message ||
-            "حدث خطأ أثناء إنشاء الحساب، يرجى المحاولة مرة أخرى."
+          "حدث خطأ أثناء إنشاء الحساب، يرجى المحاولة مرة أخرى."
         );
       }
     }
   };
 
-  return (
-    <div className="min-h-screen w-full bg-[#F8F9FA] flex flex-col" dir="rtl">
+  return ( 
+    <div
+      className="min-h-screen w-full bg-[#F8F9FA] flex flex-col"
+      dir="rtl"
+    >
       <MainHeader />
 
       <main className="flex-1 w-full flex items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
-        <div className="w-full max-w-[446px] bg-white rounded-[16px] border border-[#E2E8F0] shadow-sm flex flex-col overflow-hidden">
+        <div
+          className="
+                        w-full
+                        max-w-[446px]
+                        bg-white
+                        rounded-[16px]
+                        border
+                        border-[#E2E8F0]
+                        shadow-sm
+                        flex
+                        flex-col
+                        overflow-hidden
+                    "
+        >
           <Header
             title="إنشاء حساب"
             subtitle="مرحباً بك في نضارة للجلدية والتجميل"
@@ -133,12 +137,30 @@ const Register = () => {
           <form
             onSubmit={handleSubmit(onSubmit)}
             noValidate
-            className="flex flex-col gap-[16px] px-4 pb-5 sm:px-6 sm:pb-6"
+            className="
+                            flex
+                            flex-col
+                            gap-[16px]
+                            px-4
+                            pb-5
+                            sm:px-6
+                            sm:pb-6
+                        "
           >
             {formError && (
               <div
                 role="alert"
-                className="w-full p-3 bg-red-50 border border-red-200 rounded-[8px] text-red-600 text-[13px] text-center"
+                className="
+                                    w-full
+                                    p-3
+                                    bg-red-50
+                                    border
+                                    border-red-200
+                                    rounded-[8px]
+                                    text-red-600
+                                    text-[13px]
+                                    text-center
+                                "
               >
                 {formError}
               </div>
@@ -173,34 +195,6 @@ const Register = () => {
               error={errors.phone?.message}
             />
 
-            {/* حقل تاريخ الميلاد */}
-            <FormField
-              label="تاريخ الميلاد"
-              type="date"
-              field={register("date_of_birth")}
-              error={errors.date_of_birth?.message}
-            />
-
-            {/* حقل الجنس */}
-            <div className="flex flex-col gap-1 text-right">
-              <label className="text-[14px] font-medium text-[#1E293B]">
-                الجنس
-              </label>
-              <select
-                {...register("gender")}
-                className="w-full h-[48px] px-3 border border-[#E2E8F0] rounded-[8px] outline-none focus:border-[#4C2325] text-[14px] bg-white"
-              >
-                <option value="">اختر الجنس</option>
-                <option value="male">ذكر</option>
-                <option value="female">أنثى</option>
-              </select>
-              {errors.gender && (
-                <span className="text-red-500 text-[12px]">
-                  {errors.gender.message}
-                </span>
-              )}
-            </div>
-
             <FormField
               label="كلمة المرور"
               type="password"
@@ -223,13 +217,50 @@ const Register = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full min-h-[48px] px-4 bg-[#4C2325] hover:bg-[#36181A] text-white font-medium rounded-[8px] transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 mt-2 font-[Tajawal] text-[14px] sm:text-[16px]"
+              className="
+                                w-full
+                                min-h-[48px]
+                                px-4
+                                bg-[#4C2325]
+                                hover:bg-[#36181A]
+                                text-white
+                                font-medium
+                                rounded-[8px]
+                                transition-colors
+                                cursor-pointer
+                                disabled:cursor-not-allowed
+                                disabled:opacity-50
+                                mt-2
+                                font-[Tajawal]
+                                text-[14px]
+                                sm:text-[16px]
+                            "
             >
-              {isSubmitting ? "جاري إنشاء الحساب..." : "إنشاء حساب"}
+              {isSubmitting
+                ? "جاري إنشاء الحساب..."
+                : "إنشاء حساب"}
             </button>
           </form>
 
-          <div className="w-full min-h-[57px] py-[16px] px-4 sm:px-6 bg-[#4C2325]/10 border-t border-[#D5C7AD]/20 flex flex-wrap items-center justify-center gap-1 text-center font-[Tajawal]">
+          <div
+            className="
+                            w-full
+                            min-h-[57px]
+                            py-[16px]
+                            px-4
+                            sm:px-6
+                            bg-[#4C2325]/10
+                            border-t
+                            border-[#D5C7AD]/20
+                            flex
+                            flex-wrap
+                            items-center
+                            justify-center
+                            gap-1
+                            text-center
+                            font-[Tajawal]
+                        "
+          >
             <span className="text-[13px] sm:text-[14px] text-[#4C2325]">
               لديك حساب بالفعل؟
             </span>

@@ -12,7 +12,7 @@ import DermatologyConsultation from "./Components/Features/Feature5/DermatologyC
 import AboutClinic from "./Components/Features/Feature6/AboutClinic";
 import ServicesPage from "./Components/Features/Feature1-Auth/ServicesPage";
 import ContactUs from "./Components/Features/Feature1-Auth/ContactUs";
-import PatientProfile from './Components/Features/Feature1-Auth/patientProfile';
+import PatientProfile from "./Components/Features/Feature1-Auth/PatientProfile";
 import BookAppointment from './Components/Features/Feature1-Auth/BookAppointment';
 import AppointmentPayment from './Components/Features/Feature1-Auth/AppointmentPayment';
 
