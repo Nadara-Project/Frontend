@@ -181,27 +181,28 @@ export default function BookAppointment() {
                 </div>
               </div>
 
-              {/* تاريخ الزيارة */}
-              <div>
-                <label className="block text-[13px] font-[600] text-[#4C2325] mb-[8px]">
-                  تاريخ الزيارة <span className="text-[#E53E3E]">*</span>
-                </label>
-                <div className="relative">
-                  <input 
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => {
-                      setSelectedDate(e.target.value);
-                      setSelectedTime(''); // إعادة تصفير الوقت المختار عند تغيير التاريخ
-                      if (errorMessage) setErrorMessage('');
-                    }}
-                    className={`w-full h-[48px] px-[16px] pl-[40px] rounded-[10px] border bg-white text-[14px] text-[#212121] focus:outline-none cursor-pointer ${
-                      !selectedDate && errorMessage ? 'border-[#E53E3E]' : 'border-[#E2E8F0] focus:border-[#4C2325]'
-                    }`}
-                  />
-                  <FiCalendar className="absolute left-[16px] top-[16px] text-[#A0AEC0] pointer-events-none" />
-                </div>
-              </div>
+
+{/* تاريخ الزيارة */}
+<div>
+  <label className="block text-[13px] font-[600] text-[#4C2325] mb-[8px]">
+    تاريخ الزيارة <span className="text-[#E53E3E]">*</span>
+  </label>
+  <div className="relative">
+    <input 
+      type="date"
+      value={selectedDate}
+      onChange={(e) => {
+        setSelectedDate(e.target.value);
+        setSelectedTime('');
+        if (errorMessage) setErrorMessage('');
+      }}
+      className={`w-full h-[48px] pr-[44px] pl-[16px] rounded-[10px] border bg-white text-[14px] text-[#212121] focus:outline-none cursor-pointer text-right [direction:ltr] [&::-webkit-date-and-time-value]:text-right [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:left-0 [&::-webkit-calendar-picker-indicator]:top-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+        !selectedDate && errorMessage ? 'border-[#E53E3E]' : 'border-[#E2E8F0] focus:border-[#4C2325]'
+      }`}
+    />
+    <FiCalendar className="absolute right-[16px] top-[16px] text-[#A0AEC0] pointer-events-none text-[18px]" />
+  </div>
+</div>
 
               {/* الوقت المناسب */}
               <div>
