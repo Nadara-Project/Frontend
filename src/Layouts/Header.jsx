@@ -2,6 +2,7 @@ import { Link, NavLink } from "react-router-dom";
 import { FiLogOut, FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../hooks/useAuth";
 import { useState } from "react";
+import NadaraLogo from "../Components/Common/NadaraLogo";
 
 const Header = () => {
     const { user, isAuthenticated, logout } = useAuth();
@@ -71,13 +72,11 @@ const Header = () => {
 
                 {/* Logo */}
                 <Link to="/" onClick={closeMenu}>
-                    <img
-                        src="/Logo.svg"
-                        alt="NADARA نظارة"
+                    <NadaraLogo
+                        introTarget
                         className="
                             h-[45px]
                             w-auto
-                            object-contain
                             sm:h-[52px]
                         "
                     />
@@ -215,7 +214,7 @@ const Header = () => {
                                     justify-center
                                     rounded-[8px]
                                     bg-[#4C2325]
-                                    px-[16px]m
+                                    px-[16px]
                                     py-[8px]
                                     font-[Tajawal]
                                     text-[16px]
@@ -311,11 +310,7 @@ const Header = () => {
                     "
                 >
                     <Link to="/" onClick={closeMenu}>
-                        <img
-                            src="/Logo.svg"
-                            alt="NADARA"
-                            className="h-[40px] w-auto"
-                        />
+                        <NadaraLogo className="h-[40px] w-auto" />
                     </Link>
 
                     <button
