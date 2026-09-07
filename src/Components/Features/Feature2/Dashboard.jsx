@@ -1,24 +1,30 @@
-import React from 'react';
 import Hero from "../Feature3/Hero";
 import WhyNadara from "../Feature3/WhyNadara";
 import BookingSteps from "../Feature3/BookingSteps";
 import Services from "../Feature3/Services";
 import Footer from "../Feature3/Footer";
 import Header from '../../../Layouts/Header';
+import IntroSequence from '../../Common/IntroSequence';
 
 const Dashboard = () => {
   return (
     <div className="min-h-screen bg-[#F8F9FA]" dir="rtl">
-      
-  <Header />
-      <main className="flex flex-col gap-12 py-9">
-      <Hero />
-       < WhyNadara />
-       <BookingSteps />
-       <Services />
+
+      {/* مقدمة الشعار: تعمل مرة واحدة لكل جلسة */}
+      <IntroSequence />
+
+      {/* الهيدر */}
+      <Header />
+
+      {/* المحتوى الرئيسي */}
+      <main className="flex flex-col gap-12 py-9" data-intro-page>
+        <Hero />
+        <WhyNadara />
+        <BookingSteps />
+        <Services />
       </main>
 
-      {/* 3. الفوتر */}
+      {/* الفوتر */}
       <Footer />
     </div>
   );

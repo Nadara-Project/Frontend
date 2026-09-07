@@ -1,40 +1,20 @@
 import { Link, NavLink } from "react-router-dom";
 import { FiMenu, FiX } from "react-icons/fi";
 import { useState } from "react";
+import NadaraLogo from "../Components/Common/NadaraLogo";
 
 const Header = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    // الروابط الأساسية في الناف بار متضمنة "ماي بروفايل"
+    // الروابط الأساسية في الناف بار متضمنة "حسابي"
     const navLinks = [
-        {
-            name: "الرئيسية",
-            path: "/",
-        },
-        {
-            name: "الخدمات",
-            path: "/services",
-        },
-        {
-            name: "حجز موعد",
-            path: "/booking",
-        },
-        {
-            name: "استشارة أونلاين",
-            path: "/online-consultation",
-        },
-        {
-            name: "عن العيادة",
-            path: "/about",
-        },
-        {
-            name: "تواصل معنا",
-            path: "/contact",
-        },
-        {
-            name: "حسابي",
-            path: "/user-profile", 
-        },
+        { name: "الرئيسية", path: "/" },
+        { name: "الخدمات", path: "/services" },
+        { name: "حجز موعد", path: "/booking" },
+        { name: "استشارة أونلاين", path: "/online-consultation" },
+        { name: "عن العيادة", path: "/about" },
+        { name: "تواصل معنا", path: "/contact" },
+        { name: "حسابي", path: "/user-profile" },
     ];
 
     const closeMenu = () => {
@@ -72,13 +52,11 @@ const Header = () => {
             >
                 {/* Logo */}
                 <Link to="/" onClick={closeMenu}>
-                    <img
-                        src="/Logo.svg"
-                        alt="NADARA نظارة"
+                    <NadaraLogo
+                        introTarget
                         className="
                             h-[45px]
                             w-auto
-                            object-contain
                             sm:h-[52px]
                         "
                     />
@@ -223,7 +201,7 @@ const Header = () => {
                     z-[70]
                     h-screen
                     w-[280px]
-                    max-w-[85%]
+                    max-w-[85vw]
                     bg-white
                     p-[24px]
                     shadow-[-4px_0_15px_rgba(0,0,0,0.15)]
@@ -249,11 +227,7 @@ const Header = () => {
                     "
                 >
                     <Link to="/" onClick={closeMenu}>
-                        <img
-                            src="/Logo.svg"
-                            alt="NADARA"
-                            className="h-[40px] w-auto"
-                        />
+                        <NadaraLogo className="h-[40px] w-auto" />
                     </Link>
 
                     <button
@@ -324,8 +298,9 @@ const Header = () => {
                         onClick={closeMenu}
                         className="
                             flex
+                            flex-1
+                            min-w-0
                             h-[44px]
-                            w-1/2
                             items-center
                             justify-center
                             rounded-[8px]
@@ -345,8 +320,9 @@ const Header = () => {
                         onClick={closeMenu}
                         className="
                             flex
+                            flex-1
+                            min-w-0
                             h-[44px]
-                            w-1/2
                             items-center
                             justify-center
                             rounded-[8px]
