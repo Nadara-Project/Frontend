@@ -13,16 +13,18 @@ const Dashboard = () => {
       {/* مقدمة الشعار: تعمل مرة واحدة لكل جلسة */}
       <IntroSequence />
 
+      {/* الهيدر */}
       <Header />
+
+      {/* المحتوى الرئيسي */}
       <main className="flex flex-col gap-12 py-9" data-intro-page>
-      
         <Hero />
         <WhyNadara />
         <BookingSteps />
         <Services />
       </main>
 
-      {/* 3. الفوتر */}
+      {/* الفوتر */}
       <Footer />
     </div>
   );

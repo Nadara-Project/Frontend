@@ -54,7 +54,7 @@ const serverFieldMap = {
   phone: "phone",
   password: "password",
   password_confirmation: "confirmPassword",
-  birth_date: "date_of_birth", // التعديل هنا لربط خطأ السيرفر بحقل الفورم
+  birth_date: "date_of_birth",
   gender: "gender",
 };
 
@@ -89,18 +89,18 @@ const Register = () => {
         name: values.name,
         email: values.email,
         phone: values.phone,
-        birth_date: values.date_of_birth, // الإرسال باسم birth_date للسيرفر
+        birth_date: values.date_of_birth,
         gender: values.gender,
         password: values.password,
         password_confirmation: values.confirmPassword,
+        device_name: "web",
       });
 
       navigate("/dashboard", { replace: true });
     } catch (error) {
-      if (error.status === 422) {
-        Object.entries(error.errors || {}).forEach(([serverField, messages]) => {
+      if (error.status === 422 && error.errors) {
+        Object.entries(error.errors).forEach(([serverField, messages]) => {
           const field = serverFieldMap[serverField];
-
           if (field) {
             setError(field, {
               type: "server",
@@ -108,7 +108,6 @@ const Register = () => {
             });
           }
         });
-
         setFormError(error.message || "يرجى مراجعة البيانات المدخلة.");
       } else {
         setFormError(
