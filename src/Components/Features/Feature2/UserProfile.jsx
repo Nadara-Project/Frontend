@@ -58,7 +58,6 @@ const UserProfile = () => {
 
     try {
       const token = localStorage.getItem('token');
-      // إرسال البيانات المحدثة للباك إند (تأكدي من الرابط وطريقة الـ Method إذا كانت PUT أو POST حسب البوستمان لديكِ)
       const response = await fetch('https://nadara.apps.madafa.net/api/v1/profile', {
         method: 'PUT', // أو POST حسب الـ API لديكِ
         headers: {
