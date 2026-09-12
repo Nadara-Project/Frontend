@@ -38,6 +38,7 @@ jobs:
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -50,10 +51,18 @@ jobs:
 
       # vercel pull يجلب إعدادات المشروع ومتغيّرات البيئة عبر الـ IDs أعلاه،
       # وهو ما يغني عن حِيَل حذف مجلد .vercel يدوياً.
-      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
-      - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel build --prod --token="$VERCEL_TOKEN"
 
+      # --meta يربط كل نشرة بالكوميت الذي أنتجها، فيصير سؤال
+      # "أي كوميت على البرودكشن الآن؟" له جواب في لوحة Vercel.
       - name: Deploy
         id: deploy
-        run: echo "url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})" >> "$GITHUB_OUTPUT"
+        run: |
+          url=$(vercel deploy --prebuilt --prod \
+            --meta githubCommitSha="$GITHUB_SHA" \
+            --meta githubCommitRef="$GITHUB_REF_NAME" \
+            --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Deployed \`$GITHUB_SHA\` to $url" >> "$GITHUB_STEP_SUMMARY"
