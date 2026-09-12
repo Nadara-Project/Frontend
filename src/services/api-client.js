@@ -1,5 +1,6 @@
 // src/services/api-client.js
-const BASE_URL = 'https://nadara.apps.madafa.net/api/v1';
+const BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? 'https://nadara.apps.madafa.net/api/v1';
 
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';

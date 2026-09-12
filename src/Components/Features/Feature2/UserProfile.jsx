@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiCalendar, FiMessageSquare, FiFolder, FiUser, FiLogOut } from 'react-icons/fi';
-import { auth } from '../../../services/api-client'; // استدعي دالة جلب وحفظ الملف الشخصي حسب هيكلة مشروعك
 
 const UserProfile = () => {
   const [formData, setFormData] = useState({
@@ -80,7 +79,7 @@ const UserProfile = () => {
       } else {
         setMessage({ text: result.message || 'حدث خطأ أثناء الحفظ.', type: 'error' });
       }
-    } catch (error) {
+    } catch {
       setMessage({ text: 'تعذر الاتصال بالسيرفر.', type: 'error' });
     }
   };

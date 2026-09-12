@@ -1,4 +1,3 @@
-import React from 'react';
 import { FaPhone, FaLocationDot, FaClock, FaStarOfLife } from 'react-icons/fa6';
 import Header from '../../../Layouts/Header';
 

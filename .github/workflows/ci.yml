@@ -1,25 +1,32 @@
-name: Continuous Integration (CI)
+name: CI
 
+# يعمل على الـ PRs وعلى develop. أما main فالتحقق فيها جزء من خط النشر
+# (cd-deploy.yml) حتى لا يتكرر نفس البناء مرتين على كل دفعة.
 on:
-  push:
-    branches: ["main", "develop"]
   pull_request:
     branches: ["main", "develop"]
+  push:
+    branches: ["develop"]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-test:
+  verify:
+    name: Lint & Build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: npm
 
-      - name: Install Dependencies
-        run: npm install
+      # npm ci يلتزم بـ package-lock.json حرفياً، فالبناء في CI مطابق للمحلي.
+      - run: npm ci
 
-      - name: Build Project
-        run: npm run build
+      - run: npm run lint
+
+      - run: npm run build

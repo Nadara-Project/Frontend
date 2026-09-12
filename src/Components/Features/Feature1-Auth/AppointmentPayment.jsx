@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FiUser, FiChevronDown, FiUploadCloud, FiClock, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
+import { FiUser, FiChevronDown, FiUploadCloud, FiClock, FiAlertCircle } from 'react-icons/fi';
 
 export default function AppointmentPayment() {
   const navigate = useNavigate();

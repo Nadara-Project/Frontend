@@ -1,23 +1,59 @@
-name: Continuous Deployment (CD Main)
+name: CD (Production)
 
 on:
   push:
     branches: ["main"]
 
+# دفعتان متتاليتان لا تتسابقان على البرودكشن: الأقدم يُلغى.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
 jobs:
-  deploy-production:
+  verify:
+    name: Lint & Build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Clean Vercel Cache Directory
-        run: rm -rf .vercel
-
-      - name: Deploy to Vercel Action
-        uses: amondnet/vercel-action@v25
+      - uses: actions/setup-node@v4
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: "--prod"
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run build
+
+  deploy:
+    name: Deploy to Vercel
+    # لا نشر إلا بعد نجاح التحقق. هذا هو الفرق الجوهري عن النسخة السابقة.
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm install --global vercel@latest
+
+      # vercel pull يجلب إعدادات المشروع ومتغيّرات البيئة عبر الـ IDs أعلاه،
+      # وهو ما يغني عن حِيَل حذف مجلد .vercel يدوياً.
+      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy
+        id: deploy
+        run: echo "url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})" >> "$GITHUB_OUTPUT"
