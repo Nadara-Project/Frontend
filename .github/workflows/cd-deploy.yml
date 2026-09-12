@@ -14,9 +14,9 @@ jobs:
     name: Lint & Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -29,7 +29,7 @@ jobs:
 
   deploy:
     name: Deploy to Vercel
-    # لا نشر إلا بعد نجاح التحقق. هذا هو الفرق الجوهري عن النسخة السابقة.
+    # لا نشر إلا بعد نجاح التحقق.
     needs: verify
     runs-on: ubuntu-latest
     environment:
@@ -40,23 +40,35 @@ jobs:
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      # بدون هذه الخطوة يفشل النشر بـ "exit code 1" دون ذكر السبب.
+      - name: Check secrets
+        run: |
+          missing=""
+          [ -z "$VERCEL_TOKEN" ]      && missing="$missing VERCEL_TOKEN"
+          [ -z "$VERCEL_ORG_ID" ]     && missing="$missing VERCEL_ORG_ID"
+          [ -z "$VERCEL_PROJECT_ID" ] && missing="$missing VERCEL_PROJECT_ID"
+          if [ -n "$missing" ]; then
+            echo "::error::أسرار ناقصة:$missing — أضفها في Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+          echo "الأسرار الثلاثة موجودة. ORG_ID يبدأ بـ: ${VERCEL_ORG_ID:0:8}… PROJECT_ID: ${VERCEL_PROJECT_ID:0:8}…"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
 
       - run: npm install --global vercel@latest
 
-      # vercel pull يجلب إعدادات المشروع ومتغيّرات البيئة عبر الـ IDs أعلاه،
-      # وهو ما يغني عن حِيَل حذف مجلد .vercel يدوياً.
-      - run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+      # يفشل هنا إذا كان التوكن غير صالح أو لا يملك صلاحية على الفريق.
+      - name: Vercel pull
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
-      - run: vercel build --prod --token="$VERCEL_TOKEN"
+      - name: Vercel build
+        run: vercel build --prod --token="$VERCEL_TOKEN"
 
-      # --meta يربط كل نشرة بالكوميت الذي أنتجها، فيصير سؤال
-      # "أي كوميت على البرودكشن الآن؟" له جواب في لوحة Vercel.
       - name: Deploy
         id: deploy
         run: |
