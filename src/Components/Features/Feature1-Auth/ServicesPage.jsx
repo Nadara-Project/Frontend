@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FiSearch, FiClock, FiArrowLeft } from 'react-icons/fi';
 import Header from '../../../Layouts/Header';
 import Footer from '../../../Layouts/Footer';

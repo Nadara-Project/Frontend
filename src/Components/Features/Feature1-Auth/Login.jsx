@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import MainHeader from "../../../Layouts/Header";
@@ -15,8 +15,6 @@ const Login = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-
-  const redirectTo = location.state?.from ?? "/dashboard";
 
   // رسالة قادمة من مسار آخر (مثل نجاح تعيين كلمة المرور) لتأكيد ما تم للمستخدم.
   const notice = location.state?.notice ?? "";

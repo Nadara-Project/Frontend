@@ -1,7 +1,8 @@
 import axios from "axios";
 
 // استبدل الـ URL برابط الـ API الخاص بـ Backend فريقك
-const API_BASE_URL = "https://nadara.apps.madafa.net/api/v1";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? "https://nadara.apps.madafa.net/api/v1";
 
 export const patientAuthApi = {
   // تسجيل الدخول

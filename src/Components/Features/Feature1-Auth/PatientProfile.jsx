@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { FiUser, FiCamera, FiCalendar, FiChevronDown, FiTrash2 } from 'react-icons/fi';
@@ -126,7 +126,7 @@ export default function PatientProfile() {
       const newImageUrl = res.data?.data?.image_url || res.data?.image_url || res.data?.data?.user?.image_url;
       setAvatarPreview(newImageUrl || URL.createObjectURL(file));
       setMessage({ type: 'success', text: 'تم تحديث الصورة الشخصية بنجاح' });
-    } catch (err) {
+    } catch {
       setMessage({ type: 'error', text: 'فشل رفع الصورة الشخصية' });
     } finally {
       setUploadingImage(false);
@@ -162,7 +162,7 @@ export default function PatientProfile() {
       localStorage.setItem('auth_user', JSON.stringify(currentAuthUser));
 
       setMessage({ type: 'success', text: 'تم حذف الصورة الشخصية بنجاح' });
-    } catch (err) {
+    } catch {
       setMessage({ type: 'error', text: 'فشل حذف الصورة الشخصية' });
     } finally {
       setDeletingImage(false);
