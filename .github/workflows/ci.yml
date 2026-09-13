@@ -6,8 +6,12 @@ on:
   pull_request:
     branches: ["main", "develop"]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-test:
+  lint-and-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -17,9 +21,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: "npm"
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Run Linter
+        run: npm run lint
 
       - name: Build Project
         run: npm run build
