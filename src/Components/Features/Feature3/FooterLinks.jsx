@@ -1,3 +1,12 @@
+import { Link } from "react-router-dom";
+
+const links = [
+    { name: "الخدمات", path: "/services" },
+    { name: "حجز موعد", path: "/booking" },
+    { name: "استشارة أونلاين", path: "/online-consultation" },
+    { name: "عن العيادة", path: "/about" },
+];
+
 const FooterLinks = () => {
     return (
         <div
@@ -18,41 +27,16 @@ const FooterLinks = () => {
             </h3>
 
             <ul className="flex flex-col gap-3">
-                <li>
-                    <a
-                        href="#services"
-                        className="font-[Tajawal] text-[14px] font-medium leading-5 text-[#4C2325]"
-                    >
-                        الخدمات
-                    </a>
-                </li>
-
-                <li>
-                    <a
-                        href="#booking"
-                        className="font-[Tajawal] text-[14px] font-medium leading-5 text-[#4C2325]"
-                    >
-                        حجز موعد
-                    </a>
-                </li>
-
-                <li>
-                    <a
-                        href="#consultation"
-                        className="font-[Tajawal] text-[14px] font-medium leading-5 text-[#4C2325]"
-                    >
-                        استشارة أونلاين
-                    </a>
-                </li>
-
-                <li>
-                    <a
-                        href="#about"
-                        className="font-[Tajawal] text-[14px] font-medium leading-5 text-[#4C2325]"
-                    >
-                        عن العيادة
-                    </a>
-                </li>
+                {links.map((link) => (
+                    <li key={link.path}>
+                        <Link
+                            to={link.path}
+                            className="font-[Tajawal] text-[14px] font-medium leading-5 text-[#4C2325]"
+                        >
+                            {link.name}
+                        </Link>
+                    </li>
+                ))}
             </ul>
         </div>
     );

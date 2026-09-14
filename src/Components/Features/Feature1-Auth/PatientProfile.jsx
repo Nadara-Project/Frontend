@@ -1,484 +1,369 @@
-import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom';
-import { FiUser, FiCamera, FiCalendar, FiChevronDown, FiTrash2 } from 'react-icons/fi';
+import { useEffect, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import { FiCamera, FiLogOut, FiTrash2, FiUser } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { Alert, ErrorState, PageLoader, Spinner } from '../../Common/Feedback';
+import Modal from '../../Common/Modal';
+import { auth, profile } from '../../../services/api-client';
+import { UPLOAD_LIMITS } from '../../../config/clinic';
+import { todayInClinic } from '../../../utils/format';
 
-const BASE_URL = 'https://nadara.apps.madafa.net/api/v1';
+const { image: IMAGE_RULES } = UPLOAD_LIMITS;
+const PHONE_PATTERN = /^\+?[0-9\s\-()]{7,20}$/;
 
+const schema = yup.object({
+  name: yup.string().trim().required('الاسم مطلوب').min(2, 'الاسم يجب أن يكون حرفين على الأقل').max(255),
+  phone: yup
+    .string()
+    .trim()
+    .required('رقم الهاتف مطلوب')
+    .matches(PHONE_PATTERN, 'رقم الهاتف غير صحيح'),
+  birth_date: yup
+    .string()
+    .required('تاريخ الميلاد مطلوب')
+    .test('past', 'تاريخ الميلاد يجب أن يكون قبل اليوم', (value) => !value || value < todayInClinic()),
+  gender: yup.string().oneOf(['male', 'female'], 'الرجاء اختيار الجنس').required('الجنس مطلوب'),
+});
+
+const inputClass = (hasError) =>
+  `h-[46px] w-full rounded-[12px] border bg-white px-[14px] text-[15px] text-[#212121] placeholder-[#A0AEC0] focus:outline-none ${
+    hasError ? 'border-[#E53E3E]' : 'border-[#E2E8F0] focus:border-[#4C2325]'
+  }`;
+
+const Field = ({ id, label, error, children }) => (
+  <div className="flex flex-col gap-[6px]">
+    <label htmlFor={id} className="text-[13px] font-[600] text-[#4C2325] sm:text-[14px]">
+      {label}
+    </label>
+    {children}
+    {error && (
+      <span role="alert" className="text-[12px] text-[#E53E3E]">
+        {error}
+      </span>
+    )}
+  </div>
+);
+
+/** الملف الشخصي للمريض (US-006): البيانات الأساسية والصورة وأمان الحساب. */
 export default function PatientProfile() {
-  const [formData, setFormData] = useState({
-    name: '',
-    gender: 'أنثى',
-    phone: '',
-    email: '',
-    birth_date: '',
-    address: ''
+  const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+
+  const [loadState, setLoadState] = useState({ loading: true, error: null, user: null });
+  const [reloadToken, setReloadToken] = useState(0);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [imageBusy, setImageBusy] = useState('');
+  const [logoutAllOpen, setLogoutAllOpen] = useState(false);
+  const [loggingOutAll, setLoggingOutAll] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors, isSubmitting, isDirty },
+  } = useForm({
+    resolver: yupResolver(schema),
+    mode: 'onTouched',
+    defaultValues: { name: '', phone: '', birth_date: '', gender: '' },
   });
 
-  const [avatarPreview, setAvatarPreview] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [deletingImage, setDeletingImage] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const fillForm = (user) =>
+    reset({
+      name: user.name ?? '',
+      phone: user.phone ?? '',
+      birth_date: user.birth_date ?? '',
+      gender: user.gender ?? '',
+    });
 
-  const fileInputRef = useRef(null);
-  const navigate = useNavigate();
-
-  // تحويل صيغة التاريخ إلى YYYY-MM-DD
-  const formatDateToYMD = (dateString) => {
-    if (!dateString) return '';
-    if (dateString.includes('/')) {
-      const parts = dateString.split('/');
-      if (parts.length === 3) {
-        const day = parts[0].padStart(2, '0');
-        const month = parts[1].padStart(2, '0');
-        const year = parts[2];
-        return `${year}-${month}-${day}`;
-      }
-    }
-    return dateString;
-  };
-
-  // 1. جلب بيانات المريض
   useEffect(() => {
-    const fetchProfile = async () => {
-      const token = localStorage.getItem('auth_token');
-
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
-      try {
-        const res = await axios.get(`${BASE_URL}/profile`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
-          },
-        });
-
-        const userData = res.data.data?.user || res.data.user || res.data.data || res.data;
-
-        let formattedGender = userData.gender || 'female';
-        if (formattedGender === 'female') formattedGender = 'أنثى';
-        if (formattedGender === 'male') formattedGender = 'ذكر';
-
-        setFormData({
-          name: userData.name || '',
-          gender: formattedGender,
-          phone: userData.phone || '',
-          email: userData.email || '',
-          birth_date: formatDateToYMD(userData.birth_date || userData.date_of_birth || ''),
-          address: userData.address || ''
-        });
-
-        // اعتماد image_url القادم من الـ API مباشرة
-        if (userData.image_url) {
-          setAvatarPreview(userData.image_url);
-        }
-      } catch (err) {
-        if (err.response?.status === 401) {
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('auth_user');
-          navigate('/login');
-        } else {
-          setMessage({ type: 'error', text: 'حدث خطأ أثناء جلب البيانات' });
-        }
-      } finally {
-        setLoading(false);
-      }
+    let active = true;
+    profile.get().then(
+      (user) => {
+        if (!active) return;
+        setLoadState({ loading: false, error: null, user });
+        fillForm(user);
+      },
+      (error) => active && setLoadState({ loading: false, error, user: null })
+    );
+    return () => {
+      active = false;
     };
+    // fillForm يعتمد على reset الثابت من react-hook-form
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reloadToken]);
 
-    fetchProfile();
-  }, [navigate]);
+  const user = loadState.user;
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const onSubmit = async (values) => {
+    setMessage({ type: '', text: '' });
+    try {
+      const updated = await profile.update({
+        name: values.name.trim(),
+        phone: values.phone.trim(),
+        birth_date: values.birth_date,
+        gender: values.gender,
+      });
+      setLoadState((state) => ({ ...state, user: updated }));
+      fillForm(updated);
+      setMessage({ type: 'success', text: 'تم حفظ التغييرات بنجاح.' });
+    } catch (error) {
+      if (error.status === 422) {
+        Object.keys(values).forEach((field) => {
+          const fieldMessage = error.fieldError(field);
+          if (fieldMessage) setError(field, { type: 'server', message: fieldMessage });
+        });
+      }
+      setMessage({ type: 'error', text: error.status === 422 ? 'يرجى مراجعة الحقول المظللة.' : error.message });
+    }
   };
 
-  // رفع الصورة (POST /profile/image)
-  const handleImageSelect = async (e) => {
-    const file = e.target.files[0];
+  const handleImageSelect = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
     if (!file) return;
 
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      navigate('/login');
+    if (!IMAGE_RULES.types.includes(file.type)) {
+      setMessage({ type: 'error', text: `صيغة الصورة غير مدعومة، الصيغ المسموحة: ${IMAGE_RULES.typesLabel}.` });
+      return;
+    }
+    if (file.size > IMAGE_RULES.maxBytes) {
+      setMessage({ type: 'error', text: `حجم الصورة أكبر من ${IMAGE_RULES.maxLabel}.` });
       return;
     }
 
-    setUploadingImage(true);
+    setImageBusy('upload');
     setMessage({ type: '', text: '' });
-
-    const imageFormData = new FormData();
-    imageFormData.append('image', file);
-
     try {
-      const res = await axios.post(`${BASE_URL}/profile/image`, imageFormData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      const newImageUrl = res.data?.data?.image_url || res.data?.image_url || res.data?.data?.user?.image_url;
-      setAvatarPreview(newImageUrl || URL.createObjectURL(file));
-      setMessage({ type: 'success', text: 'تم تحديث الصورة الشخصية بنجاح' });
-    } catch {
-      setMessage({ type: 'error', text: 'فشل رفع الصورة الشخصية' });
+      const updated = await profile.uploadImage(file);
+      setLoadState((state) => ({ ...state, user: { ...state.user, ...updated } }));
+      setMessage({ type: 'success', text: 'تم تحديث الصورة الشخصية.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.fieldError?.('image') ?? error.message });
     } finally {
-      setUploadingImage(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      setImageBusy('');
     }
   };
 
-  // حذف الصورة (DELETE /profile/image)
   const handleRemoveImage = async () => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-
-    setDeletingImage(true);
+    setImageBusy('remove');
     setMessage({ type: '', text: '' });
-
     try {
-      await axios.delete(`${BASE_URL}/profile/image`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      });
+      const updated = await profile.removeImage();
+      setLoadState((state) => ({ ...state, user: { ...state.user, ...updated } }));
+      setMessage({ type: 'success', text: 'تم حذف الصورة الشخصية.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message });
+    } finally {
+      setImageBusy('');
+    }
+  };
 
-      setAvatarPreview(null);
-      
-      const currentAuthUser = JSON.parse(localStorage.getItem('auth_user') || '{}');
-      currentAuthUser.image_url = null;
-      localStorage.setItem('auth_user', JSON.stringify(currentAuthUser));
-
-      setMessage({ type: 'success', text: 'تم حذف الصورة الشخصية بنجاح' });
+  const handleLogoutAll = async () => {
+    setLoggingOutAll(true);
+    try {
+      await auth.logoutAll();
     } catch {
-      setMessage({ type: 'error', text: 'فشل حذف الصورة الشخصية' });
-    } finally {
-      setDeletingImage(false);
+      // الجلسة المحلية تُمسح في كل الأحوال
     }
+    navigate('/login', {
+      replace: true,
+      state: { notice: 'تم تسجيل الخروج من جميع الأجهزة. سجّل الدخول من جديد للمتابعة.' },
+    });
   };
 
-  // 2. تحديث بيانات المريض
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setMessage({ type: '', text: '' });
-
-    const token = localStorage.getItem('auth_token');
-
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-
-    try {
-      const res = await axios.put(
-        `${BASE_URL}/profile`,
-        {
-          name: formData.name,
-          phone: formData.phone,
-          address: formData.address,
-          birth_date: formatDateToYMD(formData.birth_date),
-          gender: formData.gender === 'أنثى' ? 'female' : 'male',
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        }
-      );
-
-      const updatedUser = res.data?.data?.user || res.data?.user || res.data?.data || res.data;
-
-      if (updatedUser) {
-        const currentAuthUser = JSON.parse(localStorage.getItem('auth_user') || '{}');
-        const newAuthUser = { ...currentAuthUser, ...updatedUser };
-        localStorage.setItem('auth_user', JSON.stringify(newAuthUser));
-
-        let formattedGender = updatedUser.gender || 'female';
-        if (formattedGender === 'female') formattedGender = 'أنثى';
-        if (formattedGender === 'male') formattedGender = 'ذكر';
-
-        setFormData(prev => ({
-          ...prev,
-          name: updatedUser.name || prev.name,
-          phone: updatedUser.phone || prev.phone,
-          address: updatedUser.address || prev.address,
-          birth_date: formatDateToYMD(updatedUser.birth_date || prev.birth_date),
-          gender: formattedGender,
-        }));
-      }
-
-      setMessage({ type: 'success', text: 'تم حفظ التغييرات بنجاح' });
-    } catch (err) {
-      if (err.response?.status === 422) {
-        const errorsObj = err.response.data?.errors;
-        let errorMessage = err.response.data?.message || 'البيانات المدخلة غير صالحة';
-
-        if (errorsObj && typeof errorsObj === 'object') {
-          const firstErrorArray = Object.values(errorsObj)[0];
-          if (Array.isArray(firstErrorArray) && firstErrorArray.length > 0) {
-            errorMessage = firstErrorArray[0];
-          }
-        }
-
-        setMessage({ type: 'error', text: errorMessage });
-      } else if (err.response?.status === 401) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_user');
-        navigate('/login');
-      } else {
-        setMessage({ type: 'error', text: 'فشل حفظ التغييرات، حاول مرة أخرى.' });
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (loading) {
+  if (loadState.loading) return <PageLoader label="جاري تحميل بياناتك..." />;
+  if (loadState.error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#D5C7AD1A] text-[#4C2325] font-['Tajawal'] text-[16px] px-[16px]">
-        جاري تحميل البيانات...
-      </div>
+      <ErrorState
+        error={loadState.error}
+        onRetry={() => {
+          setLoadState({ loading: true, error: null, user: null });
+          setReloadToken((token) => token + 1);
+        }}
+      />
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#D5C7AD1A] font-['Tajawal'] text-right" dir="rtl">
-      
-      {/* Header */}
-      <header className="w-full bg-white border-b border-[#E5E7EB] h-[64px] md:h-[72px] px-[16px] sm:px-[24px] md:px-[64px] flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-[12px]">
-          <img src="/Logo.svg" alt="NADARA" className="h-[28px] sm:h-[32px] md:h-[36px] w-auto" />
-        </div>
+    <div className="flex flex-col gap-[16px]">
+      <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-[20px] shadow-sm sm:rounded-[24px] sm:p-[32px]">
+        <Alert type={message.type || 'info'} className="mb-[20px]">
+          {message.text}
+        </Alert>
 
-        <nav className="hidden lg:flex items-center gap-[24px] xl:gap-[32px] text-[#4A5568] text-[15px] xl:text-[16px] font-[400]">
-          <a href="#" className="hover:text-[#4C2325] transition-colors">الرئيسية</a>
-          <a href="#" className="hover:text-[#4C2325] transition-colors">خدماتنا</a>
-          <Link 
-            to="/book-appointment" 
-            className="flex items-center gap-[6px] hover:text-[#4C2325] transition-colors cursor-pointer"
-          >
-            <span>حجوزاتي</span>
-            <span className="w-[18px] h-[18px] rounded-full bg-[#E5D7D8] text-[#4C2325] text-[10px] font-bold flex items-center justify-center">
-              2
-            </span>
-          </Link>
-          <a href="#" className="flex items-center gap-[6px] hover:text-[#4C2325] transition-colors">
-            <span>استشاراتي</span>
-            <span className="w-[18px] h-[18px] rounded-full bg-[#E5D7D8] text-[#4C2325] text-[10px] font-bold flex items-center justify-center">1</span>
-          </a>
-        </nav>
+        {/* الصورة */}
+        <div className="mb-[28px] flex flex-col items-center justify-center">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImageSelect}
+            accept={IMAGE_RULES.accept}
+            className="hidden"
+          />
 
-        <div className="flex items-center gap-[8px] cursor-pointer">
-          <div className="w-[36px] h-[36px] sm:w-[40px] sm:h-[40px] rounded-full bg-[#EEEEEE] flex items-center justify-center text-[#718096] overflow-hidden">
-            {avatarPreview ? (
-              <img src={avatarPreview} alt="User" className="w-full h-full object-cover" />
-            ) : (
-              <FiUser className="w-[18px] h-[18px] sm:w-[20px] sm:h-[20px] text-[#4C2325]" />
-            )}
-          </div>
-          <span className="text-[13px] sm:text-[14px] text-[#212121] font-[500] truncate max-w-[100px] sm:max-w-[150px]">
-            {formData.name || 'المريض'}
-          </span>
-          <FiChevronDown className="w-[16px] h-[16px] text-[#718096]" />
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="w-full max-w-[900px] mx-auto pt-[24px] sm:pt-[32px] md:pt-[40px] pb-[40px] sm:pb-[60px] px-[16px] sm:px-[24px] flex flex-col gap-[16px] sm:gap-[24px]">
-        
-        <div className="w-full text-right">
-          <span className="text-[12px] font-[400] text-[#4C2325] block leading-[16px] mb-[4px]">
-            لوحة المريض
-          </span>
-          <h1 className="text-[24px] sm:text-[28px] md:text-[32px] font-[700] text-[#4C2325] leading-[32px] sm:leading-[36px] md:leading-[40px] tracking-[-0.64px]">
-            ملفي الشخصي
-          </h1>
-        </div>
-
-        <div className="w-full bg-white rounded-[16px] sm:rounded-[24px] border border-[#E5E7EB] shadow-sm p-[20px] sm:p-[32px] md:p-[40px]">
-          
-          {message.text && (
-            <div className={`mb-[20px] sm:mb-[24px] p-[10px] sm:p-[12px] rounded-[10px] text-center text-[13px] sm:text-[14px] ${
-              message.type === 'error' ? 'bg-[#FFF5F5] text-[#E53E3E] border border-[#FEB2B2]' : 'bg-[#F0FFF4] text-[#38A169] border border-[#9AE6B4]'
-            }`}>
-              {message.text}
-            </div>
-          )}
-
-          {/* Avatar Section */}
-          <div className="w-full flex flex-col items-center justify-center mb-[24px] sm:mb-[32px]">
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleImageSelect} 
-              accept="image/*" 
-              className="hidden" 
-            />
-
-            <div className="relative w-[88px] h-[88px] sm:w-[96px] sm:h-[96px]">
-              <div className="w-full h-full rounded-full bg-[#EEEEEE] overflow-hidden flex items-center justify-center border-2 border-white shadow-sm">
-                {avatarPreview ? (
-                  <img src={avatarPreview} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <FiUser className="w-[40px] h-[40px] sm:w-[48px] sm:h-[48px] text-[#A0AEC0]" />
-                )}
-              </div>
-              
-              {/* زر التغيير - أسفل اليسار */}
-              <button 
-                type="button" 
-                onClick={() => fileInputRef.current.click()}
-                disabled={uploadingImage || deletingImage}
-                className="absolute bottom-0 left-0 translate-x-[-2px] translate-y-[2px] w-[28px] h-[28px] bg-white border border-[#E2E8F0] rounded-full shadow-md flex items-center justify-center text-[#4C2325] hover:bg-[#F7FAFC] transition-all cursor-pointer disabled:opacity-50"
-                title="تغيير الصورة"
-              >
-                <FiCamera className="w-[14px] h-[14px] text-[#4C2325]" />
-              </button>
-
-              {/* زر الحذف - أعلى اليمين (يظهر فقط عند وجود صورة) */}
-              {avatarPreview && (
-                <button 
-                  type="button" 
-                  onClick={handleRemoveImage}
-                  disabled={uploadingImage || deletingImage}
-                  className="absolute top-0 right-0 translate-x-[2px] translate-y-[-2px] w-[28px] h-[28px] bg-white border border-[#E2E8F0] rounded-full shadow-md flex items-center justify-center text-[#E53E3E] hover:bg-[#FFF5F5] transition-all cursor-pointer disabled:opacity-50"
-                  title="حذف الصورة"
-                >
-                  <FiTrash2 className="w-[13px] h-[13px] text-[#E53E3E]" />
-                </button>
+          <div className="relative h-[96px] w-[96px]">
+            <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-white bg-[#EEEEEE] shadow-sm">
+              {user?.image_url ? (
+                <img src={user.image_url} alt="الصورة الشخصية" className="h-full w-full object-cover" />
+              ) : (
+                <FiUser className="h-[44px] w-[44px] text-[#A0AEC0]" aria-hidden="true" />
+              )}
+              {imageBusy && (
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-white/70 text-[#4C2325]">
+                  <Spinner className="h-[24px] w-[24px]" />
+                </span>
               )}
             </div>
 
-            {(uploadingImage || deletingImage) && (
-              <span className="text-[12px] text-[#718096] mt-[8px]">
-                {uploadingImage ? 'جاري رفع الصورة...' : 'جاري الحذف...'}
-              </span>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={Boolean(imageBusy)}
+              aria-label="تغيير الصورة"
+              title="تغيير الصورة"
+              className="absolute bottom-0 left-0 flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-full border border-[#E2E8F0] bg-white text-[#4C2325] shadow-md transition-all hover:bg-[#F7FAFC] disabled:opacity-50"
+            >
+              <FiCamera className="h-[15px] w-[15px]" />
+            </button>
+
+            {user?.image_url && (
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                disabled={Boolean(imageBusy)}
+                aria-label="حذف الصورة"
+                title="حذف الصورة"
+                className="absolute right-0 top-0 flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-full border border-[#E2E8F0] bg-white text-[#E53E3E] shadow-md transition-all hover:bg-[#FFF5F5] disabled:opacity-50"
+              >
+                <FiTrash2 className="h-[14px] w-[14px]" />
+              </button>
             )}
           </div>
-
-          {/* Form Grid */}
-          <form onSubmit={handleSubmit} className="space-y-[20px] sm:space-y-[24px]">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px] sm:gap-[20px] md:gap-[24px]">
-              
-              <div>
-                <label className="block text-[13px] sm:text-[14px] font-[600] text-[#4C2325] mb-[6px] sm:mb-[8px] leading-[20px]">
-                  الاسم الكامل
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="سارة أحمد"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full h-[44px] sm:h-[48px] px-[14px] sm:px-[16px] rounded-[10px] sm:rounded-[12px] border border-[#E2E8F0] bg-white text-[14px] sm:text-[16px] font-[400] text-[#212121] placeholder-[#A0AEC0] focus:outline-none focus:border-[#4C2325]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[13px] sm:text-[14px] font-[600] text-[#4C2325] mb-[6px] sm:mb-[8px] leading-[20px]">
-                  الجنس
-                </label>
-                <div className="relative w-full">
-                  <select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    className="w-full h-[44px] sm:h-[48px] px-[14px] sm:px-[16px] rounded-[10px] sm:rounded-[12px] border border-[#E2E8F0] bg-white text-[14px] sm:text-[16px] font-[400] text-[#212121] focus:outline-none focus:border-[#4C2325] appearance-none cursor-pointer"
-                  >
-                    <option value="أنثى">أنثى</option>
-                    <option value="ذكر">ذكر</option>
-                  </select>
-                  <FiChevronDown className="absolute left-[14px] sm:left-[16px] top-[14px] sm:top-[16px] w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] text-[#A0AEC0] pointer-events-none" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[13px] sm:text-[14px] font-[600] text-[#4C2325] mb-[6px] sm:mb-[8px] leading-[20px]">
-                  البريد الإلكتروني
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  disabled
-                  className="w-full h-[44px] sm:h-[48px] px-[14px] sm:px-[16px] rounded-[10px] sm:rounded-[12px] border border-[#EDF2F7] bg-[#F7FAFC] text-[14px] sm:text-[16px] font-[400] text-[#718096] cursor-not-allowed"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[13px] sm:text-[14px] font-[600] text-[#4C2325] mb-[6px] sm:mb-[8px] leading-[20px]">
-                  رقم الجوال
-                </label>
-                <input
-                  type="text"
-                  name="phone"
-                  placeholder="0599123456"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="w-full h-[44px] sm:h-[48px] px-[14px] sm:px-[16px] rounded-[10px] sm:rounded-[12px] border border-[#E2E8F0] bg-white text-[14px] sm:text-[16px] font-[400] text-[#212121] placeholder-[#A0AEC0] focus:outline-none focus:border-[#4C2325]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[13px] sm:text-[14px] font-[600] text-[#4C2325] mb-[6px] sm:mb-[8px] leading-[20px]">
-                  تاريخ الميلاد
-                </label>
-                <div className="relative w-full">
-                  <input
-                    type="date"
-                    name="birth_date"
-                    value={formData.birth_date}
-                    onChange={handleChange}
-                    className="w-full h-[44px] sm:h-[48px] px-[14px] sm:px-[16px] pl-[36px] sm:pl-[40px] rounded-[10px] sm:rounded-[12px] border border-[#E2E8F0] bg-white text-[14px] sm:text-[16px] font-[400] text-[#212121] focus:outline-none focus:border-[#4C2325]"
-                  />
-                  <FiCalendar className="absolute left-[14px] sm:left-[16px] top-[14px] sm:top-[16px] w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] text-[#A0AEC0] pointer-events-none" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[13px] sm:text-[14px] font-[600] text-[#4C2325] mb-[6px] sm:mb-[8px] leading-[20px]">
-                  العنوان
-                </label>
-                <input
-                  type="text"
-                  name="address"
-                  placeholder="غزة - الرمال - شارع عمر المختار"
-                  value={formData.address}
-                  onChange={handleChange}
-                  className="w-full h-[44px] sm:h-[48px] px-[14px] sm:px-[16px] rounded-[10px] sm:rounded-[12px] border border-[#E2E8F0] bg-white text-[14px] sm:text-[16px] font-[400] text-[#212121] placeholder-[#A0AEC0] focus:outline-none focus:border-[#4C2325]"
-                />
-              </div>
-
-            </div>
-
-            <div className="pt-[12px] sm:pt-[16px] flex justify-start">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full sm:w-[171.63px] h-[44px] sm:h-[48px] bg-[#4C2325] hover:bg-[#381A1B] text-white rounded-[10px] sm:rounded-[12px] text-[13px] sm:text-[14px] font-[600] transition-all duration-200 disabled:opacity-50 shadow-sm flex items-center justify-center cursor-pointer"
-              >
-                {submitting ? 'جاري الحفظ...' : 'حفظ التغييرات'}
-              </button>
-            </div>
-
-          </form>
+          <span className="mt-[10px] text-[12px] text-[#94A3B8]">
+            {IMAGE_RULES.typesLabel} حتى {IMAGE_RULES.maxLabel}
+          </span>
         </div>
-      </main>
+
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-[20px]">
+          <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 md:gap-[22px]">
+            <Field id="profile-name" label="الاسم الكامل" error={errors.name?.message}>
+              <input id="profile-name" autoComplete="name" {...register('name')} className={inputClass(errors.name)} />
+            </Field>
+
+            <Field id="profile-gender" label="الجنس" error={errors.gender?.message}>
+              <select id="profile-gender" {...register('gender')} className={`${inputClass(errors.gender)} cursor-pointer`}>
+                <option value="">اختر الجنس</option>
+                <option value="female">أنثى</option>
+                <option value="male">ذكر</option>
+              </select>
+            </Field>
+
+            <Field id="profile-email" label="البريد الإلكتروني">
+              <input
+                id="profile-email"
+                type="email"
+                dir="ltr"
+                value={user?.email ?? ''}
+                disabled
+                className="h-[46px] w-full cursor-not-allowed rounded-[12px] border border-[#EDF2F7] bg-[#F7FAFC] px-[14px] text-right text-[15px] text-[#718096]"
+              />
+            </Field>
+
+            <Field id="profile-phone" label="رقم الجوال" error={errors.phone?.message}>
+              <input
+                id="profile-phone"
+                type="tel"
+                dir="ltr"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="0599123456"
+                {...register('phone')}
+                className={`${inputClass(errors.phone)} text-right`}
+              />
+            </Field>
+
+            <Field id="profile-birth-date" label="تاريخ الميلاد" error={errors.birth_date?.message}>
+              <input
+                id="profile-birth-date"
+                type="date"
+                max={todayInClinic()}
+                {...register('birth_date')}
+                className={inputClass(errors.birth_date)}
+              />
+            </Field>
+          </div>
+
+          <div className="flex flex-col-reverse items-stretch gap-[10px] pt-[8px] sm:flex-row sm:items-center sm:justify-start">
+            <button
+              type="submit"
+              disabled={isSubmitting || !isDirty}
+              className="flex h-[46px] cursor-pointer items-center justify-center gap-[8px] rounded-[12px] bg-[#4C2325] px-[28px] text-[14px] font-[600] text-white shadow-sm transition-all hover:bg-[#381A1B] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSubmitting && <Spinner className="h-[16px] w-[16px]" />}
+              {isSubmitting ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+            </button>
+            {isDirty && !isSubmitting && (
+              <button
+                type="button"
+                onClick={() => fillForm(user)}
+                className="h-[46px] cursor-pointer rounded-[12px] px-[18px] text-[14px] font-[600] text-[#6B5E5F] hover:bg-[#F4F2EE]"
+              >
+                تجاهل التعديلات
+              </button>
+            )}
+          </div>
+        </form>
+      </section>
+
+      <section className="flex flex-col gap-[12px] rounded-[16px] border border-[#E5E7EB] bg-white p-[20px] sm:flex-row sm:items-center sm:justify-between sm:p-[24px]">
+        <div>
+          <h2 className="text-[15px] font-[700] text-[#2B2527]">أمان الحساب</h2>
+          <p className="text-[13px] text-[#6B5E5F]">إذا سجّلت الدخول من جهاز لا تملكه، سجّل الخروج من كل الأجهزة.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setLogoutAllOpen(true)}
+          className="inline-flex h-[42px] cursor-pointer items-center justify-center gap-[8px] rounded-[10px] border border-[#FECACA] px-[16px] text-[14px] font-[600] text-[#B91C1C] hover:bg-[#FEF2F2]"
+        >
+          <FiLogOut className="h-[15px] w-[15px]" aria-hidden="true" />
+          الخروج من كل الأجهزة
+        </button>
+      </section>
+
+      <Modal
+        open={logoutAllOpen}
+        onClose={() => setLogoutAllOpen(false)}
+        dismissible={!loggingOutAll}
+        title="الخروج من كل الأجهزة"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={handleLogoutAll}
+              disabled={loggingOutAll}
+              className="inline-flex h-[44px] cursor-pointer items-center justify-center gap-[8px] rounded-[10px] bg-[#B91C1C] px-[18px] text-[14px] font-[600] text-white hover:bg-[#991B1B] disabled:opacity-60"
+            >
+              {loggingOutAll && <Spinner className="h-[16px] w-[16px]" />}
+              تأكيد الخروج
+            </button>
+            <button
+              type="button"
+              onClick={() => setLogoutAllOpen(false)}
+              disabled={loggingOutAll}
+              className="inline-flex h-[44px] cursor-pointer items-center justify-center rounded-[10px] border border-[#E2E8F0] px-[18px] text-[14px] font-[600] text-[#4C2325]"
+            >
+              تراجع
+            </button>
+          </>
+        }
+      >
+        <p className="text-[14px] leading-[24px] text-[#4C2325]">
+          سيتم إنهاء جلستك على كل الأجهزة بما فيها هذا الجهاز، وستحتاج لتسجيل الدخول من جديد.
+        </p>
+      </Modal>
     </div>
   );
 }

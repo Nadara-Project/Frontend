@@ -21,7 +21,7 @@ function Copyright() {
                     sm:text-[14px]
                 "
             >
-                ©️ 2026 عيادة نضارة NADHARAH - جميع الحقوق محفوظة
+                © {new Date().getFullYear()} عيادة نضارة NADARA - جميع الحقوق محفوظة
             </p>
         </div>
     );

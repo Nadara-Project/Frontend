@@ -1,233 +1,276 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { FiUser, FiChevronDown, FiUploadCloud, FiClock, FiAlertCircle } from 'react-icons/fi';
+import { useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { FiAlertCircle, FiArrowRight, FiClock } from 'react-icons/fi';
+import Header from '../../../Layouts/Header';
+import RequestStatusCard from '../../Common/RequestStatusCard';
+import ReceiptUploadForm from '../../Common/ReceiptUploadForm';
+import { Alert, ErrorState, PageLoader, StatusBadge } from '../../Common/Feedback';
+import { useAsync } from '../../../hooks/useAsync';
+import { useCountdown } from '../../../hooks/useCountdown';
+import { appointments, consultations } from '../../../services/api-client';
+import { CLINIC } from '../../../config/clinic';
+import {
+  appointmentDisplayStatus,
+  canPayAppointment,
+  canPayConsultation,
+  consultationDisplayStatus,
+} from '../../../utils/status';
+import {
+  formatAppointmentDateTime,
+  formatCountdown,
+  formatDuration,
+  formatPrice,
+  formatTimestamp,
+  pluralizeImages,
+} from '../../../utils/format';
 
-export default function AppointmentPayment() {
-  const navigate = useNavigate();
+const durationBetween = (startIso, endIso) => {
+  const minutes = Math.round((new Date(endIso) - new Date(startIso)) / 60000);
+  return Number.isFinite(minutes) ? formatDuration(minutes) : '';
+};
 
-  // حالات الصفحة: 'pending' (بانتظار الدفع) | 'under_review' (قيد المراجعة)
-  const [step, setStep] = useState('pending');
-  const [timeLeft, setTimeLeft] = useState(1799); // 30 دقيقة
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [errorMessage, setErrorMessage] = useState('');
+/** إعدادات كل نوع طلب: من أين يُجلب، وكيف يُلخَّص، ومتى يُسمح بالدفع. */
+const KINDS = {
+  appointment: {
+    api: appointments,
+    notFound: 'الموعد غير موجود',
+    pageTitle: 'إتمام حجز الموعد',
+    canPay: canPayAppointment,
+    displayStatus: appointmentDisplayStatus,
+    summary: (item) => [
+      { label: 'الخدمة', value: item.service?.name },
+      { label: 'الطبيب', value: item.doctor?.name },
+      { label: 'الموعد', value: formatAppointmentDateTime(item.start_at) },
+      { label: 'المدة', value: durationBetween(item.start_at, item.end_at) },
+    ],
+  },
+  consultation: {
+    api: consultations,
+    notFound: 'الاستشارة غير موجودة',
+    pageTitle: 'إتمام طلب الاستشارة',
+    canPay: canPayConsultation,
+    displayStatus: consultationDisplayStatus,
+    summary: (item) => [
+      { label: 'الطبيب', value: item.doctor?.name },
+      { label: 'تاريخ الطلب', value: formatTimestamp(item.submitted_at ?? item.created_at) },
+      { label: 'الصور المرفقة', value: pluralizeImages(item.attachments?.length ?? 0) },
+      { label: 'الرد المتوقع', value: 'خلال 24 ساعة من تأكيد الدفع' },
+    ],
+  },
+};
 
-  // العداد التنازلي لمهلة الدفع
-  useEffect(() => {
-    if (step !== 'pending' || timeLeft <= 0) return;
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [step, timeLeft]);
+/** بطاقة الحالة لطلب لا ينتظر الدفع (قيد المراجعة، مؤكد، منتهي...). */
+const statusCardFor = (kind, item) => {
+  const { label, tone } = KINDS[kind].displayStatus(item);
+  const isAppointment = kind === 'appointment';
+  const listPath = isAppointment ? '/dashboard' : '/dashboard/consultations';
 
-  // تنسيق وقت العداد
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  const base = {
+    statusLabel: label,
+    reference: item.payment?.receipt_number,
+    details: [
+      ...KINDS[kind].summary(item),
+      { label: isAppointment ? 'رسوم الموعد' : 'رسوم الاستشارة', value: formatPrice(item.price) },
+    ],
+    detailsTitle: isAppointment ? 'تفاصيل الزيارة:' : 'تفاصيل الاستشارة:',
+    footer: isAppointment ? { label: 'موقع العيادة:', value: CLINIC.shortAddress } : undefined,
+    action: isAppointment
+      ? { label: 'عرض مواعيدي', to: listPath }
+      : { label: 'فتح الاستشارة', to: `/consultations/${item.id}` },
+    secondaryAction: { label: 'العودة إلى الرئيسية', to: '/' },
   };
 
-  // معالجة اختيار الملف
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setUploadedFile(e.target.files[0]);
-      setErrorMessage('');
+  if (item.payment?.status === 'submitted') {
+    return {
+      ...base,
+      tone: 'pending',
+      title: 'تم استلام إيصال الدفع',
+      subtitle: isAppointment
+        ? 'طلبك قيد المراجعة، وسيؤكد فريق العيادة موعدك بعد مطابقة الإيصال.'
+        : 'بعد مطابقة الإيصال، سيراجع الطبيب حالتك ويرسل لك الرد داخل حسابك.',
+    };
+  }
+
+  if (!isAppointment && item.status === 'replied') {
+    return { ...base, tone: 'success', title: 'وصل رد الطبيب', subtitle: 'افتح الاستشارة لقراءة الرد ومتابعة المحادثة.' };
+  }
+
+  if (tone === 'success' || tone === 'brand' || item.status === 'awaiting_reply') {
+    return {
+      ...base,
+      tone: 'success',
+      title: isAppointment ? (item.status === 'completed' ? 'تمت الزيارة' : 'موعدك مؤكد') : 'تم تأكيد الدفع',
+      subtitle: isAppointment
+        ? item.status === 'completed'
+          ? undefined
+          : 'تم التحقق من الدفع وتأكيد موعدك. نراك في العيادة!'
+        : 'الطبيب يراجع حالتك الآن، وستصلك الإجابة داخل صفحة الاستشارة.',
+    };
+  }
+
+  if (tone === 'danger') {
+    return { ...base, tone: 'danger', title: 'تم رفض الطلب', subtitle: item.rejection_reason || undefined };
+  }
+
+  return {
+    ...base,
+    tone: 'neutral',
+    title: item.status === 'expired' ? 'انتهت مهلة الدفع' : 'هذا الطلب مغلق',
+    subtitle:
+      item.status === 'expired'
+        ? 'لم يصل الإيصال خلال المهلة فتم تحرير الموعد. يمكنك حجز موعد جديد في أي وقت.'
+        : undefined,
+    action: item.status === 'expired' ? { label: 'حجز موعد جديد', to: '/book-appointment' } : base.action,
+  };
+};
+
+const HoldTimer = ({ seconds }) => (
+  <div
+    className={`flex items-center justify-between gap-[12px] rounded-[16px] border p-[16px] ${
+      seconds > 0 ? 'border-[#FCD2D2] bg-[#FFF3F3]' : 'border-[#E2E8F0] bg-[#F8FAFC]'
+    }`}
+  >
+    <div className="text-[13px] leading-[1.8] text-[#718096]">
+      <p className="mb-[2px] font-[700] text-[#4C2325]" aria-live="polite">
+        {seconds > 0 ? (
+          <>
+            يرجى رفع إيصال الدفع خلال{' '}
+            <span dir="ltr" className="inline-block font-bold text-[#E53E3E]">
+              {formatCountdown(seconds)}
+            </span>
+          </>
+        ) : (
+          <span className="text-[#E53E3E]">انتهت مهلة الدفع</span>
+        )}
+      </p>
+      <p>
+        {seconds > 0
+          ? 'الموعد محجوز مؤقتاً باسمك، وسيُحرَّر تلقائياً إذا انقضت المهلة دون إرفاق الإيصال.'
+          : 'تم تحرير الموعد. احجز موعداً جديداً لتتمكن من الدفع.'}
+      </p>
+    </div>
+    <div className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-full bg-[#FEE2E2] text-[#EF4444]">
+      <FiClock className="h-[20px] w-[20px]" aria-hidden="true" />
+    </div>
+  </div>
+);
+
+/**
+ * صفحة الدفع برفع الإيصال، مشتركة بين:
+ * - الموعد: /appointments/:id/payment
+ * - الاستشارة: /consultations/:id/payment
+ *
+ * تعتمد على المعرّف في الرابط وتجلب الطلب من الخادم، فتعمل بعد تحديث الصفحة
+ * أو عند العودة إليها لاحقاً من "مواعيدي".
+ */
+export default function AppointmentPayment({ kind = 'appointment' }) {
+  const { id } = useParams();
+  const config = KINDS[kind];
+  const isAppointment = kind === 'appointment';
+
+  const query = useAsync((signal) => config.api.get(id, { signal }), [kind, id]);
+  const item = query.data;
+
+  const secondsLeft = useCountdown(isAppointment && item?.status === 'pending_payment' ? item.hold_expires_at : null);
+  const holdExpired = secondsLeft === 0;
+
+  const [justSubmitted, setJustSubmitted] = useState(false);
+
+  const handleUpload = async (payload) => {
+    const updated = await config.api.uploadReceipt(id, payload);
+    // رد الرفع لا يحمل كل العلاقات، فندمجه مع ما لدينا
+    query.setData((previous) => ({ ...previous, ...updated }));
+    setJustSubmitted(true);
+  };
+
+  const renderContent = () => {
+    if (query.loading && !item) return <PageLoader />;
+    if (query.error) {
+      return (
+        <ErrorState
+          title={query.error.status === 404 || query.error.status === 403 ? config.notFound : undefined}
+          error={query.error}
+          onRetry={query.error.status >= 500 || query.error.status === 0 ? query.reload : undefined}
+        />
+      );
     }
-  };
+    if (!item) return null;
 
-  // معالجة الضغط على زر إرسال الإيصال
-  const handleConfirmPayment = () => {
-    if (!uploadedFile) {
-      setErrorMessage('يرجى إرفاق إيصال الدفع أولاً لنتمكن من مراجعته');
-      return;
+    if (!config.canPay(item) || justSubmitted) {
+      return <RequestStatusCard {...statusCardFor(kind, item)} />;
     }
-    setErrorMessage('');
-    setStep('under_review');
-  };
 
-  // العودة لشاشة الحجوزات
-  const handleGoToAppointments = () => {
-    navigate('/patient-profile'); // قم بتعديل المسار حسب توجيه صفحة الحجوزات لديك
+    const { label, tone } = config.displayStatus(item);
+    const wasRejected = item.payment?.status === 'rejected';
+    const rejectedReason = item.payment?.rejection_reason || item.rejection_reason;
+
+    return (
+      <div className="flex flex-col gap-[20px]">
+        {isAppointment && secondsLeft !== null && <HoldTimer seconds={secondsLeft} />}
+
+        {wasRejected && (
+          <Alert type="error">
+            <p className="font-[700]">تم رفض الإيصال السابق.</p>
+            {rejectedReason && <p>السبب: {rejectedReason}</p>}
+            <p>يرجى رفع إيصال صحيح لإكمال الطلب.</p>
+          </Alert>
+        )}
+
+        <div className="rounded-[20px] border border-[#E5E7EB] bg-white p-[20px] shadow-sm sm:p-[24px]">
+          <div className="mb-[20px] flex flex-wrap items-center justify-between gap-[10px] border-b border-[#F1F5F9] pb-[16px]">
+            <h1 className="text-[17px] font-[700] text-[#212121]">{config.pageTitle}</h1>
+            <StatusBadge label={label} tone={tone} />
+          </div>
+
+          <dl className="mb-[24px] grid grid-cols-1 gap-[12px] rounded-[12px] border border-[#F3EFE6] bg-[#FDFBF7] p-[16px] sm:grid-cols-2">
+            {config
+              .summary(item)
+              .filter((row) => row.value)
+              .map((row) => (
+                <div key={row.label}>
+                  <dt className="mb-[2px] text-[12px] text-[#A0AEC0]">{row.label}</dt>
+                  <dd className="text-[14px] font-[700] text-[#212121]">{row.value}</dd>
+                </div>
+              ))}
+          </dl>
+
+          {holdExpired ? (
+            <div className="flex flex-col items-center gap-[12px] py-[12px] text-center">
+              <FiAlertCircle className="h-[28px] w-[28px] text-[#E53E3E]" aria-hidden="true" />
+              <p className="text-[14px] text-[#6B5E5F]">لم يعد بالإمكان رفع إيصال لهذا الموعد.</p>
+              <Link
+                to="/book-appointment"
+                className="inline-flex h-[44px] items-center rounded-[10px] bg-[#4C2325] px-[20px] text-[14px] font-[600] text-white hover:bg-[#381A1B]"
+              >
+                حجز موعد جديد
+              </Link>
+            </div>
+          ) : (
+            <ReceiptUploadForm
+              amount={formatPrice(item.price)}
+              onSubmit={handleUpload}
+              submitLabel={isAppointment ? 'تأكيد الموعد وإرسال الإيصال' : 'إرسال إيصال الدفع'}
+            />
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F2EE] font-['Tajawal'] text-right" dir="rtl">
-      {/* Header */}
-      <header className="w-full bg-white border-b border-[#E5E7EB] h-[64px] md:h-[72px] px-[16px] sm:px-[24px] md:px-[64px] flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-[12px]">
-          <img src="/Logo.svg" alt="NADARA" className="h-[28px] sm:h-[32px] md:h-[36px] w-auto" />
-        </div>
+    <div className="min-h-screen bg-[#F4F2EE] text-right font-['Tajawal']" dir="rtl">
+      <Header />
 
-        <nav className="hidden lg:flex items-center gap-[24px] xl:gap-[32px] text-[#4A5568] text-[15px] xl:text-[16px]">
-          <Link to="/" className="hover:text-[#4C2325] transition-colors">الرئيسية</Link>
-          <a href="#" className="hover:text-[#4C2325] transition-colors">خدماتنا</a>
-          <div className="flex items-center gap-[6px] text-[#4C2325] font-bold border-b-2 border-[#4C2325] pb-1 cursor-pointer">
-            <span>حجوزاتي</span>
-            <span className="w-[18px] h-[18px] rounded-full bg-[#E5D7D8] text-[#4C2325] text-[10px] font-bold flex items-center justify-center">2</span>
-          </div>
-          <a href="#" className="flex items-center gap-[6px] hover:text-[#4C2325] transition-colors">
-            <span>استشاراتي</span>
-            <span className="w-[18px] h-[18px] rounded-full bg-[#E5D7D8] text-[#4C2325] text-[10px] font-bold flex items-center justify-center">1</span>
-          </a>
-        </nav>
+      <main className="mx-auto w-full max-w-[720px] px-[16px] pb-[60px] pt-[24px] sm:pt-[32px]">
+        <Link
+          to={isAppointment ? '/dashboard' : '/dashboard/consultations'}
+          className="mb-[16px] inline-flex items-center gap-[6px] text-[14px] font-[500] text-[#4C2325] hover:opacity-80"
+        >
+          <FiArrowRight className="h-[16px] w-[16px]" aria-hidden="true" />
+          {isAppointment ? 'مواعيدي' : 'استشاراتي'}
+        </Link>
 
-        <div className="flex items-center gap-[8px] cursor-pointer">
-          <div className="w-[36px] h-[36px] sm:w-[40px] sm:h-[40px] rounded-full bg-[#EEEEEE] flex items-center justify-center text-[#718096]">
-            <FiUser className="w-[18px] h-[18px] text-[#4C2325]" />
-          </div>
-          <span className="text-[13px] sm:text-[14px] text-[#212121] font-[500]">سارة أحمد</span>
-          <FiChevronDown className="w-[16px] h-[16px] text-[#718096]" />
-        </div>
-      </header>
-
-      {/* Main Container */}
-      <main className="w-full max-w-[720px] mx-auto pt-[32px] pb-[60px] px-[16px]">
-        
-        {/* Step 1: بانتظار رفع الإيصال */}
-        {step === 'pending' && (
-          <div className="space-y-[20px]">
-            
-            {/* التنبيه بالوقت المتبقي */}
-            <div className="bg-[#FFF3F3] border border-[#FCD2D2] rounded-[16px] p-[16px] flex items-center justify-between">
-              <div className="text-[13px] text-[#718096] leading-[1.8]">
-                <p className="font-[700] text-[#4C2325] mb-[2px]">
-                  يرجى إتمام عملية الدفع خلال <span className="text-[#E53E3E] font-bold dir-ltr inline-block">{formatTime(timeLeft)}</span>
-                </p>
-                <p>تم حجز الفترة الزمنية مؤقتاً باسمك، سيتم إلغاء الحجز تلقائياً وتحرير الموعد للجمهور إذا انقضت المهلة دون إرفاق إيصال الدفع.</p>
-              </div>
-              <div className="w-[36px] h-[36px] rounded-full bg-[#FEE2E2] flex items-center justify-center text-[#EF4444] shrink-0 mr-[12px]">
-                <FiClock className="w-[20px] h-[20px]" />
-              </div>
-            </div>
-
-            {/* عرض رسائل الخطأ */}
-            {errorMessage && (
-              <div className="p-[14px] bg-[#FFF5F5] border border-[#FEB2B2] text-[#C53030] rounded-[12px] flex items-center gap-[10px] text-[14px] font-[600]">
-                <FiAlertCircle className="w-[20px] h-[20px] shrink-0" />
-                <span>{errorMessage}</span>
-              </div>
-            )}
-
-            {/* بطاقة الدفع */}
-            <div className="bg-white rounded-[20px] border border-[#E5E7EB] p-[24px] shadow-sm">
-              <div className="flex items-center justify-between pb-[16px] mb-[20px] border-b border-[#F1F5F9]">
-                <h2 className="text-[16px] font-[700] text-[#212121]">إتمام حجز الموعد</h2>
-                <span className="bg-[#FEF3C7] text-[#D97706] text-[12px] font-[600] px-[12px] py-[4px] rounded-full flex items-center gap-[4px]">
-                  <span className="w-[6px] h-[6px] rounded-full bg-[#D97706]"></span>
-                  بانتظار الدفع
-                </span>
-              </div>
-
-              <div className="bg-[#FDFBF7] rounded-[12px] border border-[#F3EFE6] p-[16px] flex items-center justify-between mb-[24px]">
-                <div>
-                  <span className="text-[12px] text-[#A0AEC0] block mb-[4px]">الخدمة والطبيب</span>
-                  <span className="text-[14px] font-[700] text-[#212121]">تنظيف بشرة عميق - د. نورة أحمد</span>
-                </div>
-                <div className="text-left">
-                  <span className="text-[12px] text-[#A0AEC0] block mb-[4px]">الموعد</span>
-                  <span className="text-[14px] font-[700] text-[#212121]">30/08/2026 - 10:00 صباحاً</span>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center mb-[24px] px-[4px]">
-                <span className="text-[14px] font-[600] text-[#718096]">المبلغ المطلوب للدفع:</span>
-                <span className="text-[22px] font-[800] text-[#4C2325]">50 شيكل</span>
-              </div>
-
-              {/* طرق الدفع المتاحة */}
-              <div className="mb-[24px]">
-                <label className="block text-[13px] font-[700] text-[#212121] mb-[10px]">طرق الدفع المتاحة:</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-[12px]">
-                  <div className="p-[14px] border border-[#E2E8F0] rounded-[12px] bg-[#FAFAFA]">
-                    <span className="text-[13px] font-[700] text-[#212121] block">بنك فلسطين</span>
-                    <span className="text-[12px] text-[#718096]">رقم الحساب: 1234567</span>
-                  </div>
-                  <div className="p-[14px] border border-[#E2E8F0] rounded-[12px] bg-[#FAFAFA]">
-                    <span className="text-[13px] font-[700] text-[#212121] block">جوال باي (Jawwal Pay)</span>
-                    <span className="text-[12px] text-[#718096]">رقم المحفظة: 0599123456</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* منطقة رفع الملف */}
-              <div>
-                <label className="block text-[13px] font-[700] text-[#212121] mb-[10px]">إرفاق إيصال الدفع <span className="text-[#E53E3E]">*</span>:</label>
-                <label className={`border-2 border-dashed rounded-[14px] p-[28px] flex flex-col items-center justify-center gap-[8px] cursor-pointer transition-all ${
-                  uploadedFile ? 'border-[#4C2325] bg-[#FDFBF7]' : 'border-[#CBD5E1] hover:bg-[#F8FAFC]'
-                }`}>
-                  <input type="file" onChange={handleFileChange} className="hidden" accept="image/*,.pdf" />
-                  <FiUploadCloud className={`w-[32px] h-[32px] ${uploadedFile ? 'text-[#4C2325]' : 'text-[#94A3B8]'}`} />
-                  <span className="text-[13px] font-[600] text-[#475569]">
-                    {uploadedFile ? uploadedFile.name : 'اضغط هنا لرفع الصورة أو قم بسحبها وإفلاتها'}
-                  </span>
-                  <span className="text-[11px] text-[#94A3B8]">صيغ مدعومة: JPG, PNG, PDF (الحد الأقصى 5MB)</span>
-                </label>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleConfirmPayment}
-                className="w-full h-[48px] bg-[#4C2325] hover:bg-[#381A1B] text-white rounded-[12px] font-[600] text-[14px] transition-all mt-[24px] cursor-pointer shadow-sm active:scale-[0.99]"
-              >
-                تأكيد الموعد وإرسال الإيصال
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: قيد المراجعة والتدقيق */}
-        {step === 'under_review' && (
-          <div className="bg-white rounded-[20px] border border-[#E5E7EB] p-[32px] text-center shadow-sm max-w-[600px] mx-auto">
-            <div className="w-[64px] h-[64px] bg-[#FEF3C7] text-[#D97706] rounded-full flex items-center justify-center mx-auto mb-[20px]">
-              <FiClock className="w-[36px] h-[36px]" />
-            </div>
-
-            <h1 className="text-[22px] font-[800] text-[#212121] mb-[8px]">تم إرسال إيصال الدفع بنجاح!</h1>
-            <p className="text-[13px] text-[#718096] mb-[20px] leading-[1.7]">
-              طلبك الآن <span className="font-bold text-[#D97706]">قيد المراجعة</span>. يقوم فريق الاستقبال بمطابقة الإيصال وتأكيد الموعد نهائياً خلال بضع دقائق.
-            </p>
-
-            <div className="inline-flex items-center gap-[8px] bg-[#F1F5F9] px-[16px] py-[8px] rounded-full text-[12px] text-[#475569] font-[600] mb-[24px]">
-              <span className="bg-[#D97706] text-white text-[10px] px-[8px] py-[2px] rounded-full">الحالة: قيد التدقيق</span>
-              <span>|</span>
-              <span>رقم الموعد: ND-04920#</span>
-            </div>
-
-            {/* تفاصيل الموعد المعلق */}
-            <div className="bg-[#F8FAFC] rounded-[16px] border border-[#E2E8F0] p-[20px] text-right space-y-[14px] text-[13px] mb-[28px]">
-              <h3 className="font-[700] text-[#212121] border-b border-[#E2E8F0] pb-[10px]">تفاصيل الزيارة:</h3>
-              <div className="flex justify-between items-center">
-                <span className="text-[#718096]">الخدمة المطلوبة:</span>
-                <span className="font-[700] text-[#212121]">تنظيف بشرة عميق</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[#718096]">الطبيب المعالج:</span>
-                <span className="font-[700] text-[#212121]">د. نورة أحمد</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[#718096]">تاريخ الزيارة:</span>
-                <span className="font-[700] text-[#212121]">الأحد 30/08/2026</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[#718096]">التوقيت:</span>
-                <span className="font-[700] text-[#212121]">10:00 صباحاً</span>
-              </div>
-              <div className="flex justify-between items-center border-t border-[#E2E8F0] pt-[10px]">
-                <span className="text-[#718096]">موقع العيادة:</span>
-                <span className="font-[700] text-[#212121]">غزة - الرمال - برج فلسطين</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleGoToAppointments}
-              className="text-[#4C2325] hover:underline font-[700] text-[14px] cursor-pointer"
-            >
-              ← الانتقال إلى قائمة حجوزاتي لمتابعة حالة الطلب
-            </button>
-          </div>
-        )}
-
+        {renderContent()}
       </main>
     </div>
   );

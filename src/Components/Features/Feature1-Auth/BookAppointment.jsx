@@ -1,340 +1,507 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { FiUser, FiChevronDown, FiCalendar, FiArrowRight, FiAlertCircle } from 'react-icons/fi';
+import { useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { FiArrowRight, FiCalendar, FiCheck, FiClock, FiUser } from 'react-icons/fi';
+import Header from '../../../Layouts/Header';
+import { Alert, EmptyState, ErrorState, Skeleton, Spinner } from '../../Common/Feedback';
+import { useAsync } from '../../../hooks/useAsync';
+import { appointments, catalog, doctors } from '../../../services/api-client';
+import { BOOKING_RULES, CLINIC } from '../../../config/clinic';
+import {
+  addDays,
+  formatDateLong,
+  formatDuration,
+  formatPrice,
+  formatSlotTime,
+  formatWeekday,
+  initials,
+  parseWallTime,
+  todayInClinic,
+} from '../../../utils/format';
+
+const PERIODS = [
+  { key: 'morning', label: 'الفترة الصباحية', test: (hour) => hour < 12 },
+  { key: 'afternoon', label: 'فترة الظهيرة', test: (hour) => hour >= 12 && hour < 16 },
+  { key: 'evening', label: 'الفترة المسائية', test: (hour) => hour >= 16 },
+];
+
+const DAY_STRIP_LENGTH = 14;
+
+const toTime = (iso) => new Date(iso).getTime();
+
+/**
+ * الفترات تُرجع بطول جدول الطبيب (30 دقيقة مثلاً) بينما مدة الخدمة قد تكون أطول.
+ * بداية الموعد صالحة فقط إذا كانت كل الفترات التي يغطيها متاحة ومتصلة،
+ * وإلا سيرفض الخادم الحجز بـ 409 بعد أن يختاره المريض.
+ */
+const markBookableSlots = (slots, durationMinutes) => {
+  const now = Date.now();
+  const durationMs = (durationMinutes || 0) * 60_000;
+
+  return slots.map((slot, index) => {
+    const start = toTime(slot.start_at);
+    if (!slot.available || start <= now) return { ...slot, bookable: false };
+
+    const end = start + durationMs;
+    let coveredUntil = toTime(slot.end_at);
+
+    for (let next = index + 1; coveredUntil < end && next < slots.length; next += 1) {
+      const candidate = slots[next];
+      if (toTime(candidate.start_at) !== coveredUntil || !candidate.available) break;
+      coveredUntil = toTime(candidate.end_at);
+    }
+
+    return { ...slot, bookable: coveredUntil >= end };
+  });
+};
+
+const StepCard = ({ number, title, done, children, disabled }) => (
+  <section
+    aria-disabled={disabled || undefined}
+    className={`rounded-[16px] border border-[#E5E7EB] bg-white p-[18px] shadow-sm transition-opacity sm:p-[24px] ${
+      disabled ? 'pointer-events-none opacity-50' : ''
+    }`}
+  >
+    <h2 className="mb-[16px] flex items-center gap-[10px] text-[16px] font-[700] text-[#4C2325] sm:text-[17px]">
+      <span
+        className={`flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full text-[13px] ${
+          done ? 'bg-[#4C2325] text-white' : 'bg-[#D5C7AD33] text-[#4C2325]'
+        }`}
+      >
+        {done ? <FiCheck className="h-[15px] w-[15px]" aria-hidden="true" /> : number}
+      </span>
+      {title}
+    </h2>
+    {children}
+  </section>
+);
+
+const Avatar = ({ name, imageUrl, size = 'h-[44px] w-[44px]' }) =>
+  imageUrl ? (
+    <img src={imageUrl} alt="" className={`${size} shrink-0 rounded-full object-cover`} />
+  ) : (
+    <span
+      aria-hidden="true"
+      className={`${size} flex shrink-0 items-center justify-center rounded-full bg-[#4C2325] text-[14px] font-[600] text-white`}
+    >
+      {initials(name) || <FiUser />}
+    </span>
+  );
+
+const SummaryRow = ({ label, value }) => (
+  <div className="flex items-start justify-between gap-[12px]">
+    <dt className="shrink-0 text-[#718096]">{label}</dt>
+    <dd className="text-left font-[600] text-[#212121]">{value || '—'}</dd>
+  </div>
+);
 
 export default function BookAppointment() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // بيانات الأطباء للاختيار
-  const doctorsList = [
-    { id: 1, name: 'د. نورة أحمد', title: 'أخصائية جلدية', image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150' },
-    { id: 2, name: 'د. خالد سعد', title: 'استشاري تجميل', image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150' },
-    { id: 3, name: 'د. محمد أحمد', title: 'استشاري عام', image: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150' },
-  ];
+  const today = todayInClinic();
+  const lastDay = addDays(today, BOOKING_RULES.maxDaysAhead);
 
-  // الأوقات المتاحة
-  const timeSlots = [
-    { time: '09:00 ص', available: true },
-    { time: '09:30 ص', available: false },
-    { time: '10:00 ص', available: true },
-    { time: '10:30 ص', available: true },
-    { time: '11:00 ص', available: true },
-    { time: '11:30 ص', available: true },
-  ];
+  const [serviceId, setServiceId] = useState(() => Number(searchParams.get('service_id')) || null);
+  const [doctorId, setDoctorId] = useState(() => Number(searchParams.get('doctor_id')) || null);
+  const [date, setDate] = useState(today);
+  const [startAt, setStartAt] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [conflictNotice, setConflictNotice] = useState('');
 
-  // حالات النماذج
-  const [selectedService, setSelectedService] = useState('جلسة ليزر كاملة');
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
-  const [notes, setNotes] = useState('');
-  const [period, setPeriod] = useState('morning');
+  // نحفظ الاختيار في الرابط حتى لا يضيع عند تحديث الصفحة أو مشاركتها
+  const syncUrl = (nextServiceId, nextDoctorId) => {
+    const params = new URLSearchParams();
+    if (nextServiceId) params.set('service_id', nextServiceId);
+    if (nextDoctorId) params.set('doctor_id', nextDoctorId);
+    setSearchParams(params, { replace: true });
+  };
 
-  // حالة رسالة الخطأ
-  const [errorMessage, setErrorMessage] = useState('');
+  /* ------------------------------ البيانات ------------------------------ */
 
-  // دالة التعامل مع الضغط على زر تقديم الحجز
-  const handleBookingSubmit = () => {
-    // التحقق من الحقول المطلوبة
-    if (!selectedService) {
-      setErrorMessage('يرجى اختيار الخدمة المطلوبة أولاً');
-      return;
+  const servicesQuery = useAsync((signal) => catalog.services({ perPage: 100, signal }), []);
+  const bookableServices = useMemo(
+    () => (servicesQuery.data?.data ?? []).filter((service) => (service.bookable_doctors_count ?? 0) > 0),
+    [servicesQuery.data]
+  );
+  const selectedService = bookableServices.find((service) => service.id === serviceId) ?? null;
+
+  const doctorsQuery = useAsync(
+    (signal) => (serviceId ? doctors.list({ serviceId, signal }) : Promise.resolve(null)),
+    [serviceId]
+  );
+  const serviceDoctors = useMemo(
+    () =>
+      (doctorsQuery.data?.data ?? [])
+        .filter((doctor) => doctor.accepts_appointments !== false)
+        .map((doctor) => ({
+          ...doctor,
+          offering: doctor.services?.find((service) => service.id === serviceId) ?? null,
+        }))
+        .filter((doctor) => doctor.offering),
+    [doctorsQuery.data, serviceId]
+  );
+  const selectedDoctor = serviceDoctors.find((doctor) => doctor.id === doctorId) ?? null;
+
+  const slotsQuery = useAsync(
+    (signal) => (selectedDoctor && date ? doctors.availability(selectedDoctor.id, date, { signal }) : Promise.resolve(null)),
+    [selectedDoctor?.id, date]
+  );
+  const slots = useMemo(
+    () => markBookableSlots(slotsQuery.data ?? [], selectedDoctor?.offering?.duration_minutes),
+    [slotsQuery.data, selectedDoctor]
+  );
+  const selectedSlot = slots.find((slot) => slot.start_at === startAt && slot.bookable) ?? null;
+
+  const days = useMemo(
+    () => Array.from({ length: DAY_STRIP_LENGTH }, (_, index) => addDays(today, index)),
+    [today]
+  );
+
+  /* ------------------------------ الأحداث ------------------------------ */
+
+  const chooseService = (id) => {
+    setServiceId(id);
+    setDoctorId(null);
+    setStartAt('');
+    setError('');
+    syncUrl(id, null);
+  };
+
+  const chooseDoctor = (id) => {
+    setDoctorId(id);
+    setStartAt('');
+    setError('');
+    syncUrl(serviceId, id);
+  };
+
+  const chooseDate = (value) => {
+    if (!value || value < today || value > lastDay) return;
+    setDate(value);
+    setStartAt('');
+    setError('');
+    setConflictNotice('');
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedService) return setError('يرجى اختيار الخدمة أولاً.');
+    if (!selectedDoctor) return setError('يرجى اختيار الطبيب المعالج.');
+    if (!selectedSlot) return setError('يرجى اختيار وقت متاح للموعد.');
+
+    setError('');
+    setConflictNotice('');
+    setSubmitting(true);
+
+    try {
+      const appointment = await appointments.create({
+        doctorId: selectedDoctor.id,
+        serviceId: selectedService.id,
+        startAt: selectedSlot.start_at,
+      });
+      navigate(`/appointments/${appointment.id}/payment`);
+    } catch (err) {
+      if (err.status === 409) {
+        // سبقنا مريض آخر: التصحيح الوحيد المفيد هو تحديث الفترات
+        setStartAt('');
+        setConflictNotice(err.message);
+        slotsQuery.reload();
+      } else {
+        setError(err.firstError?.() ?? err.message);
+      }
+    } finally {
+      setSubmitting(false);
     }
-    if (!selectedDoctor) {
-      setErrorMessage('يرجى اختيار الطبيب المعالج');
-      return;
+  };
+
+  /* ------------------------------ العرض ------------------------------ */
+
+  const renderServices = () => {
+    if (servicesQuery.loading && !servicesQuery.data) {
+      return (
+        <div className="grid grid-cols-1 gap-[10px] sm:grid-cols-2">
+          {[0, 1, 2, 3].map((key) => (
+            <Skeleton key={key} className="h-[68px]" />
+          ))}
+        </div>
+      );
     }
-    if (!selectedDate) {
-      setErrorMessage('يرجى تحديد تاريخ الزيارة');
-      return;
-    }
-    if (!selectedTime) {
-      setErrorMessage('يرجى اختيار الوقت المناسب للحضور');
-      return;
+    if (servicesQuery.error) return <ErrorState error={servicesQuery.error} onRetry={servicesQuery.reload} />;
+    if (!bookableServices.length) {
+      return <EmptyState title="لا توجد خدمات متاحة للحجز حالياً" description="تواصل مع العيادة لمعرفة المواعيد القادمة." />;
     }
 
-    // إذا كانت كل البيانات المحددة مكتملة، يتم مسح الخطأ والانتقال لصفحة الدفع
-    setErrorMessage('');
-    navigate('/appointment-payment');
+    return (
+      <div role="radiogroup" aria-label="الخدمة" className="grid grid-cols-1 gap-[10px] sm:grid-cols-2">
+        {bookableServices.map((service) => {
+          const active = service.id === serviceId;
+          return (
+            <button
+              key={service.id}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => chooseService(service.id)}
+              className={`flex cursor-pointer flex-col items-start gap-[4px] rounded-[12px] border p-[12px] text-right transition-all ${
+                active ? 'border-[#4C2325] bg-[#FDFBF7] ring-1 ring-[#4C2325]' : 'border-[#E2E8F0] hover:border-[#CBD5E0]'
+              }`}
+            >
+              <span className="text-[14px] font-[700] text-[#212121]">{service.name}</span>
+              <span className="text-[12px] text-[#718096]">
+                {service.category?.name ? `${service.category.name} · ` : ''}
+                {service.starting_price ? `يبدأ من ${formatPrice(service.starting_price)}` : 'السعر حسب الطبيب'}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderDoctors = () => {
+    if (!serviceId) return <p className="text-[13px] text-[#718096]">اختر الخدمة أولاً لعرض الأطباء الذين يقدّمونها.</p>;
+    if (doctorsQuery.loading) {
+      return (
+        <div className="grid grid-cols-1 gap-[10px] sm:grid-cols-2">
+          {[0, 1].map((key) => (
+            <Skeleton key={key} className="h-[76px]" />
+          ))}
+        </div>
+      );
+    }
+    if (doctorsQuery.error) return <ErrorState error={doctorsQuery.error} onRetry={doctorsQuery.reload} />;
+    if (!serviceDoctors.length) {
+      return <EmptyState icon={FiUser} title="لا يوجد طبيب متاح لهذه الخدمة حالياً" description="جرّب خدمة أخرى أو عُد لاحقاً." />;
+    }
+
+    return (
+      <div role="radiogroup" aria-label="الطبيب" className="grid grid-cols-1 gap-[10px] sm:grid-cols-2">
+        {serviceDoctors.map((doctor) => {
+          const active = doctor.id === doctorId;
+          return (
+            <button
+              key={doctor.id}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => chooseDoctor(doctor.id)}
+              className={`flex cursor-pointer items-center gap-[12px] rounded-[12px] border p-[12px] text-right transition-all ${
+                active ? 'border-[#4C2325] bg-[#FDFBF7] ring-1 ring-[#4C2325]' : 'border-[#E2E8F0] hover:border-[#CBD5E0]'
+              }`}
+            >
+              <Avatar name={doctor.name} imageUrl={doctor.image_url} />
+              <span className="flex min-w-0 flex-1 flex-col gap-[2px]">
+                <span className="truncate text-[14px] font-[700] text-[#212121]">{doctor.name}</span>
+                {doctor.specialty && <span className="truncate text-[12px] text-[#718096]">{doctor.specialty}</span>}
+                <span className="flex flex-wrap items-center gap-x-[10px] text-[12px] text-[#4C2325]">
+                  <span className="font-[700]">{formatPrice(doctor.offering.price)}</span>
+                  <span className="flex items-center gap-[3px]">
+                    <FiClock className="h-[12px] w-[12px]" aria-hidden="true" />
+                    {formatDuration(doctor.offering.duration_minutes)}
+                  </span>
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderSlots = () => {
+    if (slotsQuery.loading) {
+      return (
+        <div className="grid grid-cols-3 gap-[8px] sm:grid-cols-4">
+          {Array.from({ length: 8 }, (_, key) => (
+            <Skeleton key={key} className="h-[40px]" />
+          ))}
+        </div>
+      );
+    }
+    if (slotsQuery.error) return <ErrorState error={slotsQuery.error} onRetry={slotsQuery.reload} />;
+    if (!slots.length) {
+      return (
+        <EmptyState
+          icon={FiCalendar}
+          title="الطبيب لا يداوم في هذا اليوم"
+          description="اختر يوماً آخر من الأيام أعلاه."
+        />
+      );
+    }
+    if (!slots.some((slot) => slot.bookable)) {
+      return (
+        <EmptyState
+          icon={FiCalendar}
+          title="لا توجد أوقات متاحة في هذا اليوم"
+          description="كل الفترات محجوزة أو انقضى وقتها، جرّب يوماً آخر."
+        />
+      );
+    }
+
+    return (
+      <div className="flex flex-col gap-[16px]">
+        {PERIODS.map((period) => {
+          const periodSlots = slots.filter((slot) => period.test(parseWallTime(slot.start_at)?.hour ?? 0));
+          if (!periodSlots.length) return null;
+
+          return (
+            <fieldset key={period.key}>
+              <legend className="mb-[8px] text-[13px] font-[600] text-[#6B5E5F]">{period.label}</legend>
+              <div className="grid grid-cols-3 gap-[8px] sm:grid-cols-4">
+                {periodSlots.map((slot) => {
+                  const active = slot.start_at === startAt;
+                  return (
+                    <button
+                      key={slot.start_at}
+                      type="button"
+                      disabled={!slot.bookable}
+                      aria-pressed={active}
+                      onClick={() => {
+                        setStartAt(slot.start_at);
+                        setError('');
+                        setConflictNotice('');
+                      }}
+                      className={`h-[40px] rounded-[8px] border text-[13px] font-[500] transition-all ${
+                        !slot.bookable
+                          ? 'cursor-not-allowed border-transparent bg-[#F1F5F9] text-[#94A3B8] line-through'
+                          : active
+                            ? 'cursor-pointer border-[#4C2325] bg-[#4C2325] text-white'
+                            : 'cursor-pointer border-[#E2E8F0] bg-white text-[#4C2325] hover:border-[#4C2325]'
+                      }`}
+                    >
+                      {formatSlotTime(slot.start_at)}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          );
+        })}
+        <p className="text-[12px] text-[#94A3B8]">
+          الأوقات بتوقيت العيادة. الأوقات المشطوبة محجوزة أو لا تكفي لمدة الخدمة.
+        </p>
+      </div>
+    );
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F2EE] font-['Tajawal'] text-right" dir="rtl">
-      {/* Header */}
-      <header className="w-full bg-white border-b border-[#E5E7EB] h-[64px] md:h-[72px] px-[16px] sm:px-[24px] md:px-[64px] flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-[12px]">
-          <img src="/Logo.svg" alt="NADARA" className="h-[28px] sm:h-[32px] md:h-[36px] w-auto" />
-        </div>
+    <div className="min-h-screen bg-[#F4F2EE] text-right font-['Tajawal']" dir="rtl">
+      <Header />
 
-        <nav className="hidden lg:flex items-center gap-[24px] xl:gap-[32px] text-[#4A5568] text-[15px] xl:text-[16px] font-[400]">
-          <Link to="/" className="hover:text-[#4C2325] transition-colors">الرئيسية</Link>
-          <a href="#" className="hover:text-[#4C2325] transition-colors">خدماتنا</a>
-          <div className="flex items-center gap-[6px] text-[#4C2325] font-bold border-b-2 border-[#4C2325] pb-1 cursor-pointer">
-            <span>حجوزاتي</span>
-            <span className="w-[18px] h-[18px] rounded-full bg-[#E5D7D8] text-[#4C2325] text-[10px] font-bold flex items-center justify-center">
-              2
-            </span>
-          </div>
-          <a href="#" className="flex items-center gap-[6px] hover:text-[#4C2325] transition-colors">
-            <span>استشاراتي</span>
-            <span className="w-[18px] h-[18px] rounded-full bg-[#E5D7D8] text-[#4C2325] text-[10px] font-bold flex items-center justify-center">1</span>
-          </a>
-        </nav>
-
-        <div className="flex items-center gap-[8px] cursor-pointer">
-          <div className="w-[36px] h-[36px] sm:w-[40px] sm:h-[40px] rounded-full bg-[#EEEEEE] flex items-center justify-center text-[#718096]">
-            <FiUser className="w-[18px] h-[18px] sm:w-[20px] sm:h-[20px] text-[#4C2325]" />
-          </div>
-          <span className="text-[13px] sm:text-[14px] text-[#212121] font-[500]">سارة أحمد</span>
-          <FiChevronDown className="w-[16px] h-[16px] text-[#718096]" />
-        </div>
-      </header>
-
-      {/* Main Container */}
-      <main className="w-full max-w-[1100px] mx-auto pt-[24px] sm:pt-[32px] pb-[60px] px-[16px] sm:px-[24px]">
-        {/* زر العودة */}
-        <button 
+      <main className="mx-auto w-full max-w-[1100px] px-[16px] pb-[60px] pt-[24px] sm:px-[24px] sm:pt-[32px]">
+        <button
+          type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center gap-[6px] text-[#4C2325] text-[14px] font-[500] mb-[20px] hover:opacity-80 transition-all cursor-pointer"
+          className="mb-[16px] flex cursor-pointer items-center gap-[6px] text-[14px] font-[500] text-[#4C2325] transition-all hover:opacity-80"
         >
-          <FiArrowRight className="w-[16px] h-[16px]" />
-          <span>عودة لحجوزاتي</span>
+          <FiArrowRight className="h-[16px] w-[16px]" aria-hidden="true" />
+          <span>رجوع</span>
         </button>
 
-        {/* عنوان الصفحة */}
-        <h1 className="text-[24px] sm:text-[28px] font-[700] text-[#4C2325] text-center mb-[28px]">
-          حجز موعد جديد
-        </h1>
+        <h1 className="mb-[8px] text-center text-[24px] font-[700] text-[#4C2325] sm:text-[28px]">حجز موعد جديد</h1>
+        <p className="mb-[24px] text-center text-[14px] text-[#6B5E5F]">
+          بعد الحجز يُثبَّت الموعد باسمك مؤقتاً حتى ترفع إيصال الدفع.
+        </p>
 
-        {/* عرض رسالة الخطأ والتنبيه عند نقص أحد البيانات */}
-        {errorMessage && (
-          <div className="mb-[20px] p-[14px] bg-[#FFF5F5] border border-[#FEB2B2] text-[#C53030] rounded-[12px] flex items-center gap-[10px] text-[14px] font-[600] animate-fade-in">
-            <FiAlertCircle className="w-[20px] h-[20px] shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
+        <div className="grid grid-cols-1 items-start gap-[20px] lg:grid-cols-12 lg:gap-[24px]">
+          <div className="flex flex-col gap-[16px] lg:col-span-8">
+            <StepCard number="1" title="اختر الخدمة" done={Boolean(selectedService)}>
+              {renderServices()}
+            </StepCard>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-[24px] items-start">
-          
-          {/* 1. نموذج إدخال البيانات (اليمين) */}
-          <div className="lg:col-span-8 bg-white rounded-[16px] p-[20px] sm:p-[32px] border border-[#E5E7EB] shadow-sm">
-            <h2 className="text-[18px] font-[700] text-[#4C2325] mb-[20px] border-r-4 border-[#4C2325] pr-[10px]">
-              بيانات الموعد
-            </h2>
+            <StepCard number="2" title="اختر الطبيب" done={Boolean(selectedDoctor)} disabled={!selectedService}>
+              {renderDoctors()}
+            </StepCard>
 
-            <div className="space-y-[20px]">
-              
-              {/* الخدمات المتاحة */}
-              <div>
-                <label className="block text-[13px] font-[600] text-[#4C2325] mb-[8px]">
-                  الخدمات المتاحة <span className="text-[#E53E3E]">*</span>
-                </label>
-                <div className="relative">
-                  <select 
-                    value={selectedService}
-                    onChange={(e) => {
-                      setSelectedService(e.target.value);
-                      if (errorMessage) setErrorMessage('');
-                    }}
-                    className={`w-full h-[48px] px-[16px] rounded-[10px] border bg-white text-[14px] text-[#212121] focus:outline-none appearance-none cursor-pointer ${
-                      !selectedService && errorMessage ? 'border-[#E53E3E]' : 'border-[#E2E8F0] focus:border-[#4C2325]'
-                    }`}
-                  >
-                    <option value="">اضغط لاختيار الخدمة أو التخصص</option>
-                    <option value="جلسة ليزر كاملة">جلسة ليزر كاملة</option>
-                    <option value="تنظيف بشرة عميق">تنظيف بشرة عميق</option>
-                    <option value="استشارة جلدية">استشارة جلدية</option>
-                  </select>
-                  <FiChevronDown className="absolute left-[16px] top-[16px] text-[#A0AEC0] pointer-events-none" />
-                </div>
-              </div>
-
-              {/* اختر الطبيب */}
-              <div>
-                <label className="block text-[13px] font-[600] text-[#4C2325] mb-[8px]">
-                  اختر الطبيب <span className="text-[#E53E3E]">*</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px]">
-                  {doctorsList.map((doc) => {
-                    const isSelected = selectedDoctor?.id === doc.id;
+            <StepCard number="3" title="اختر اليوم والوقت" done={Boolean(selectedSlot)} disabled={!selectedDoctor}>
+              <div className="mb-[16px] flex flex-col gap-[10px]">
+                <div className="-mx-[4px] flex snap-x gap-[8px] overflow-x-auto px-[4px] pb-[6px]">
+                  {days.map((day) => {
+                    const active = day === date;
+                    const [, , dayNumber] = day.split('-');
+                    const weekday = formatWeekday(day);
                     return (
-                      <div 
-                        key={doc.id}
-                        onClick={() => {
-                          setSelectedDoctor(doc);
-                          if (errorMessage) setErrorMessage('');
-                        }}
-                        className={`p-[12px] rounded-[12px] border text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-[6px] ${
-                          isSelected 
-                            ? 'border-[#4C2325] bg-[#FDFBF7] ring-1 ring-[#4C2325]' 
-                            : !selectedDoctor && errorMessage
-                              ? 'border-[#FEB2B2] bg-[#FFF5F5]'
-                              : 'border-[#E2E8F0] hover:border-[#CBD5E0]'
+                      <button
+                        key={day}
+                        type="button"
+                        aria-pressed={active}
+                        aria-label={formatDateLong(day)}
+                        onClick={() => chooseDate(day)}
+                        className={`flex h-[64px] w-[62px] shrink-0 cursor-pointer snap-start flex-col items-center justify-center rounded-[12px] border transition-all ${
+                          active ? 'border-[#4C2325] bg-[#4C2325] text-white' : 'border-[#E2E8F0] bg-white text-[#4C2325] hover:border-[#4C2325]'
                         }`}
                       >
-                        <img src={doc.image} alt={doc.name} className="w-[48px] h-[48px] rounded-full object-cover mb-[2px]" />
-                        <span className="text-[13px] font-[700] text-[#212121]">{doc.name}</span>
-                        <span className="text-[11px] text-[#718096]">{doc.title}</span>
-                      </div>
+                        <span className="text-[11px]">{day === today ? 'اليوم' : weekday}</span>
+                        <span className="text-[18px] font-[700] leading-[24px]">{Number(dayNumber)}</span>
+                      </button>
                     );
                   })}
                 </div>
-              </div>
 
-
-{/* تاريخ الزيارة */}
-<div>
-  <label className="block text-[13px] font-[600] text-[#4C2325] mb-[8px]">
-    تاريخ الزيارة <span className="text-[#E53E3E]">*</span>
-  </label>
-  <div className="relative">
-    <input 
-      type="date"
-      value={selectedDate}
-      onChange={(e) => {
-        setSelectedDate(e.target.value);
-        setSelectedTime('');
-        if (errorMessage) setErrorMessage('');
-      }}
-      className={`w-full h-[48px] pr-[44px] pl-[16px] rounded-[10px] border bg-white text-[14px] text-[#212121] focus:outline-none cursor-pointer text-right [direction:ltr] [&::-webkit-date-and-time-value]:text-right [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:left-0 [&::-webkit-calendar-picker-indicator]:top-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
-        !selectedDate && errorMessage ? 'border-[#E53E3E]' : 'border-[#E2E8F0] focus:border-[#4C2325]'
-      }`}
-    />
-    <FiCalendar className="absolute right-[16px] top-[16px] text-[#A0AEC0] pointer-events-none text-[18px]" />
-  </div>
-</div>
-
-              {/* الوقت المناسب */}
-              <div>
-                <label className="block text-[13px] font-[600] text-[#4C2325] mb-[8px]">
-                  الوقت المناسب <span className="text-[#E53E3E]">*</span>
+                <label className="flex flex-wrap items-center gap-[10px] text-[13px] text-[#6B5E5F]">
+                  <span>أو اختر تاريخاً آخر:</span>
+                  <input
+                    type="date"
+                    min={today}
+                    max={lastDay}
+                    value={date}
+                    onChange={(event) => chooseDate(event.target.value)}
+                    className="h-[40px] rounded-[10px] border border-[#E2E8F0] bg-white px-[12px] text-[14px] text-[#212121] focus:border-[#4C2325] focus:outline-none"
+                  />
                 </label>
-
-                {!selectedDate ? (
-                  <div className="w-full border border-dashed border-[#E2E8F0] bg-[#F8FAFC] rounded-[12px] p-[24px] flex flex-col items-center justify-center text-center gap-[8px]">
-                    <FiCalendar className="w-[24px] h-[24px] text-[#A0AEC0]" />
-                    <span className="text-[13px] text-[#718096]">
-                      الرجاء اختيار التاريخ أولاً لرؤية الأوقات المتاحة
-                    </span>
-                  </div>
-                ) : (
-                  <div className="space-y-[12px]">
-                    <div className="grid grid-cols-3 gap-[8px] bg-[#F1F5F9] p-[4px] rounded-[10px] text-[12px]">
-                      <button 
-                        type="button"
-                        onClick={() => setPeriod('morning')}
-                        className={`py-[6px] rounded-[8px] font-[500] transition-all ${period === 'morning' ? 'bg-white text-[#4C2325] shadow-sm' : 'text-[#64748B]'}`}
-                      >
-                        ☀️ الصباحية <br/><span className="text-[10px] opacity-75">9:00 ص - 12:00 م</span>
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => setPeriod('afternoon')}
-                        className={`py-[6px] rounded-[8px] font-[500] transition-all ${period === 'afternoon' ? 'bg-white text-[#4C2325] shadow-sm' : 'text-[#64748B]'}`}
-                      >
-                        🌤️ الظهيرة <br/><span className="text-[10px] opacity-75">12:00 م - 4:00 م</span>
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => setPeriod('evening')}
-                        className={`py-[6px] rounded-[8px] font-[500] transition-all ${period === 'evening' ? 'bg-white text-[#4C2325] shadow-sm' : 'text-[#64748B]'}`}
-                      >
-                        🌙 المسائية <br/><span className="text-[10px] opacity-75">4:00 م - 9:00 م</span>
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-[10px]">
-                      {timeSlots.map((slot, index) => {
-                        const isSelected = selectedTime === slot.time;
-                        return (
-                          <button
-                            key={index}
-                            type="button"
-                            disabled={!slot.available}
-                            onClick={() => {
-                              setSelectedTime(slot.time);
-                              if (errorMessage) setErrorMessage('');
-                            }}
-                            className={`h-[40px] rounded-[8px] text-[13px] font-[500] transition-all border ${
-                              !slot.available 
-                                ? 'bg-[#F1F5F9] text-[#94A3B8] border-transparent cursor-not-allowed line-through' 
-                                : isSelected 
-                                  ? 'bg-[#4C2325] text-white border-[#4C2325]' 
-                                  : 'bg-white text-[#4C2325] border-[#E2E8F0] hover:border-[#4C2325]'
-                            }`}
-                          >
-                            {slot.time}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+                <p className="text-[13px] font-[600] text-[#4C2325]">{formatDateLong(date)}</p>
               </div>
 
-              {/* ملاحظات إضافية */}
-              <div>
-                <label className="block text-[13px] font-[600] text-[#4C2325] mb-[8px]">
-                  ملاحظات إضافية (اختياري)
-                </label>
-                <textarea 
-                  rows={3}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="هل تريد إخبارنا بشيء قبل الزيارة؟"
-                  className="w-full p-[14px] rounded-[10px] border border-[#E2E8F0] bg-white text-[14px] text-[#212121] placeholder-[#A0AEC0] focus:outline-none focus:border-[#4C2325] resize-none"
-                />
-              </div>
+              {conflictNotice && (
+                <Alert type="warning" className="mb-[12px]">
+                  {conflictNotice}
+                </Alert>
+              )}
 
-            </div>
+              {selectedDoctor && renderSlots()}
+            </StepCard>
           </div>
 
-          {/* 2. ملخص الحجز (اليسار) */}
-          <div className="lg:col-span-4 bg-white text-[#212121] rounded-[16px] border border-[#E5E7EB] p-[20px] sm:p-[24px] shadow-sm flex flex-col justify-between min-h-[380px]">
-            <div>
-              <div className="flex items-center gap-[8px] border-b border-[#E2E8F0] pb-[12px] mb-[20px]">
-                <span className="text-[16px]">📋</span>
-                <h2 className="text-[16px] font-[700] text-[#4C2325]">ملخص الحجز</h2>
+          <aside className="flex flex-col gap-[16px] rounded-[16px] border border-[#E5E7EB] bg-white p-[20px] shadow-sm sm:p-[24px] lg:sticky lg:top-[96px] lg:col-span-4">
+            <h2 className="border-b border-[#E2E8F0] pb-[12px] text-[16px] font-[700] text-[#4C2325]">ملخص الحجز</h2>
+
+            <dl className="flex flex-col gap-[12px] text-[13px] sm:text-[14px]">
+              <SummaryRow label="الخدمة" value={selectedService?.name} />
+              <SummaryRow label="الطبيب" value={selectedDoctor?.name} />
+              <SummaryRow label="المدة" value={formatDuration(selectedDoctor?.offering?.duration_minutes)} />
+              <SummaryRow label="التاريخ" value={selectedSlot ? formatDateLong(date) : ''} />
+              <SummaryRow label="الوقت" value={selectedSlot ? formatSlotTime(selectedSlot.start_at) : ''} />
+            </dl>
+
+            <div className="border-t border-[#E2E8F0] pt-[16px]">
+              <div className="mb-[16px] flex items-center justify-between">
+                <span className="text-[14px] text-[#718096]">رسوم الموعد</span>
+                <span className="text-[20px] font-[700] text-[#4C2325]">
+                  {selectedDoctor ? formatPrice(selectedDoctor.offering.price) : '—'}
+                </span>
               </div>
 
-              <div className="space-y-[14px] text-[13px] sm:text-[14px]">
-                <div className="flex justify-between items-center">
-                  <span className="text-[#718096]">الخدمة المختارة:</span>
-                  <span className="font-[600] text-[#212121]">{selectedService || '--'}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[#718096]">الطبيب:</span>
-                  <span className="font-[600] text-[#212121]">{selectedDoctor?.name || '--'}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[#718096]">تاريخ الموعد:</span>
-                  <span className="font-[600] text-[#212121]">{selectedDate || '--/--/----'}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[#718096]">توقيت الحضور:</span>
-                  <span className="font-[600] text-[#212121]">{selectedTime || '--'}</span>
-                </div>
-              </div>
-            </div>
+              <Alert type="error" className="mb-[12px]">
+                {error}
+              </Alert>
 
-            <div className="mt-[24px] pt-[16px] border-t border-[#E2E8F0]">
-              <div className="flex justify-between items-center mb-[16px]">
-                <span className="text-[14px] text-[#718096]">رسوم الحجز:</span>
-                <span className="text-[18px] font-[700] text-[#4C2325]">50 شيكل</span>
-              </div>
-              
-              {/* زر تقديم طلب الحجز مع استدعاء دالة التحقق handleBookingSubmit */}
-              <button 
+              <button
                 type="button"
-                onClick={handleBookingSubmit}
-                className="w-full h-[48px] bg-[#4C2325] hover:bg-[#381A1B] text-white rounded-[12px] font-[600] text-[14px] transition-all cursor-pointer flex items-center justify-center gap-[8px] shadow-sm active:scale-[0.99]"
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="flex h-[48px] w-full cursor-pointer items-center justify-center gap-[8px] rounded-[12px] bg-[#4C2325] text-[15px] font-[600] text-white shadow-sm transition-all hover:bg-[#381A1B] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <span>تقديم طلب الحجز</span>
-                <span className="text-[16px]">←</span>
+                {submitting ? <Spinner className="h-[18px] w-[18px]" label="جاري الحجز" /> : null}
+                <span>{submitting ? 'جاري تثبيت الموعد...' : 'تثبيت الموعد والمتابعة للدفع'}</span>
               </button>
-            </div>
-          </div>
 
+              <p className="mt-[12px] text-[12px] leading-[20px] text-[#94A3B8]">
+                يمكنك إلغاء الموعد مجاناً قبل {BOOKING_RULES.cancellationWindowHours} ساعة من وقته. الأوقات بتوقيت {CLINIC.name}.
+              </p>
+              <Link to="/dashboard" className="mt-[8px] inline-block text-[13px] font-[600] text-[#4C2325] hover:underline">
+                عرض مواعيدي السابقة
+              </Link>
+            </div>
+          </aside>
         </div>
       </main>
     </div>

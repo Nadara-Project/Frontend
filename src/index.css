@@ -1,21 +1,44 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+/* خط Tajawal يُحمَّل من index.html */
 @import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 @layer base {
-
+  /*
+   * clip وليس hidden: overflow-x: hidden على html/body يحوّلهما إلى حاوية تمرير،
+   * فيتوقف position: sticky في الهيدر عن الالتصاق بأعلى الشاشة.
+   */
   html,
-  body,
-  #root {
-    @apply overflow-x-hidden;
+  body {
+    overflow-x: clip;
   }
-}
 
-body {
-  font-family: 'Tajawal', sans-serif;
+  body {
+    font-family: 'Tajawal', system-ui, sans-serif;
+    background-color: #f8f9fa;
+    color: #2b2527;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* مؤشر تركيز واضح لمستخدمي لوحة المفاتيح فقط */
+  :focus-visible {
+    outline: 2px solid #4c2325;
+    outline-offset: 2px;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 input:-webkit-autofill,

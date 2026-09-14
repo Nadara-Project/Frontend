@@ -9,7 +9,7 @@ const HeroStats = () => {
             label: "خدمات طبية",
         },
         {
-            value: "-",
+            value: "0",
             label: "ورق ملف طبي",
         },
     ];

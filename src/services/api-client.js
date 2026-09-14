@@ -1,26 +1,44 @@
 // src/services/api-client.js
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? 'https://nadara.apps.madafa.net/api/v1';
+import { statusFallback, translateErrors, translateMessage } from './errors';
+
+const BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || 'https://nadara.apps.madafa.net/api/v1'
+).replace(/\/+$/, '');
 
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
 
-const tokenStore = {
-  get: () => localStorage.getItem(TOKEN_KEY),
-  set: (token) => localStorage.setItem(TOKEN_KEY, token),
-  clear: () => localStorage.removeItem(TOKEN_KEY),
-};
-
-const userStore = {
-  get: () => {
+// التخزين قد يرمي استثناء (تصفح خاص، أو حظر ملفات الموقع)، فلا نسمح له بكسر التطبيق.
+const storage = {
+  get: (key) => {
     try {
-      return JSON.parse(localStorage.getItem(USER_KEY));
+      return localStorage.getItem(key);
     } catch {
       return null;
     }
   },
-  set: (user) => localStorage.setItem(USER_KEY, JSON.stringify(user ?? null)),
-  clear: () => localStorage.removeItem(USER_KEY),
+  set: (key, value) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // الجلسة تبقى في الذاكرة فقط لهذه الصفحة
+    }
+  },
+  remove: (key) => {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // لا شيء لإزالته
+    }
+  },
+};
+
+const readUser = () => {
+  try {
+    return JSON.parse(storage.get(USER_KEY));
+  } catch {
+    return null;
+  }
 };
 
 /**
@@ -28,14 +46,16 @@ const userStore = {
  * حتى تتحدّث كل المكوّنات فور تسجيل الدخول أو الخروج (بما فيها التبويبات الأخرى).
  */
 const listeners = new Set();
-let snapshot = { token: tokenStore.get(), user: userStore.get() };
+let snapshot = { token: storage.get(TOKEN_KEY), user: readUser() };
 
 const emit = () => {
-  snapshot = { token: tokenStore.get(), user: userStore.get() };
+  snapshot = { token: storage.get(TOKEN_KEY), user: readUser() };
   listeners.forEach((listener) => listener());
 };
 
-window.addEventListener('storage', emit);
+window.addEventListener('storage', (event) => {
+  if (event.key === null || event.key === TOKEN_KEY || event.key === USER_KEY) emit();
+});
 
 export const authStore = {
   subscribe: (listener) => {
@@ -46,74 +66,165 @@ export const authStore = {
 };
 
 const saveSession = ({ token, user }) => {
-  tokenStore.set(token);
-  userStore.set(user);
+  storage.set(TOKEN_KEY, token);
+  storage.set(USER_KEY, JSON.stringify(user ?? null));
+  emit();
+};
+
+const saveUser = (user) => {
+  if (!storage.get(TOKEN_KEY) || !user) return;
+  storage.set(USER_KEY, JSON.stringify({ ...readUser(), ...user }));
   emit();
 };
 
 const clearSession = () => {
-  tokenStore.clear();
-  userStore.clear();
+  storage.remove(TOKEN_KEY);
+  storage.remove(USER_KEY);
   emit();
 };
 
-class ApiError extends Error {
-  constructor(status, body) {
-    super(body?.message ?? 'Request failed');
+/**
+ * خطأ موحّد لكل طلبات الـ API.
+ * - message: رسالة عربية جاهزة للعرض.
+ * - errors: أخطاء الحقول (422) مترجمة، بنفس مفاتيح الباك إند.
+ * - retryAfter: عدد ثواني الانتظار عند 429 إن توفّر.
+ */
+export class ApiError extends Error {
+  constructor(status, body, { retryAfter = null } = {}) {
+    const rawMessage = body?.message ?? '';
+    super(translateMessage(rawMessage, { status }) || statusFallback(status));
+    this.name = 'ApiError';
     this.status = status;
-    this.errors = body?.errors ?? {};
+    this.rawMessage = rawMessage;
+    this.errors = translateErrors(body?.errors ?? {}, status);
+    this.retryAfter = retryAfter ?? parseRetrySeconds(rawMessage);
   }
+
   fieldError(field) {
     return this.errors[field]?.[0] ?? null;
   }
+
+  /** أول رسالة حقل، أو الرسالة العامة. */
+  firstError() {
+    const first = Object.values(this.errors)[0];
+    return first?.[0] ?? this.message;
+  }
 }
 
-async function api(path, { method = 'GET', body, auth = true } = {}) {
-  const headers = { Accept: 'application/json', 'Content-Type': 'application/json' };
-  const token = tokenStore.get();
-  if (auth && token) headers.Authorization = `Bearer ${token}`;
+const parseRetrySeconds = (message) => {
+  const match = /(\d+)\s*seconds?/i.exec(message ?? '');
+  return match ? Number(match[1]) : null;
+};
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    method, headers, body: body ? JSON.stringify(body) : undefined,
+const buildUrl = (path, query) => {
+  const url = new URL(`${BASE_URL}${path}`);
+  Object.entries(query ?? {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      url.searchParams.set(key, String(value));
+    }
   });
+  return url.toString();
+};
 
-  const data = response.status === 204 ? null : await response.json();
+/**
+ * @param {string} path مسار نسبي مثل /appointments
+ * @param {object} options
+ * @param {'json'|'blob'} [options.responseType]
+ */
+async function api(
+  path,
+  { method = 'GET', body, query, auth = true, signal, responseType = 'json' } = {}
+) {
+  const headers = { Accept: responseType === 'json' ? 'application/json' : '*/*' };
+  const isFormData = body instanceof FormData;
+
+  // مع FormData يضبط المتصفح Content-Type مع boundary بنفسه
+  if (body !== undefined && !isFormData) headers['Content-Type'] = 'application/json';
+
+  const token = storage.get(TOKEN_KEY);
+  const sentToken = auth && token;
+  if (sentToken) headers.Authorization = `Bearer ${token}`;
+
+  let response;
+  try {
+    response = await fetch(buildUrl(path, query), {
+      method,
+      headers,
+      signal,
+      body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error;
+    throw new ApiError(0, null);
+  }
 
   if (!response.ok) {
-    if (response.status === 401) clearSession();
-    throw new ApiError(response.status, data);
+    // بعض أخطاء الخادم (مثل 500 أو 413 من الـ proxy) ترجع HTML وليس JSON
+    const data = await response.json().catch(() => null);
+
+    // نمسح الجلسة فقط إذا كان التوكن المرسل هو المرفوض، لا عند فشل طلب عام
+    if (response.status === 401 && sentToken) clearSession();
+
+    const retryHeader = Number(response.headers.get('Retry-After'));
+    throw new ApiError(response.status, data, {
+      retryAfter: Number.isFinite(retryHeader) && retryHeader > 0 ? retryHeader : null,
+    });
   }
-  return data;
+
+  if (responseType === 'blob') return response.blob();
+  if (response.status === 204) return null;
+  return response.json().catch(() => null);
 }
+
+const toFormData = (fields) => {
+  const formData = new FormData();
+  Object.entries(fields).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    if (Array.isArray(value)) {
+      value.forEach((item) => formData.append(`${key}[]`, item));
+    } else {
+      formData.append(key, value);
+    }
+  });
+  return formData;
+};
+
+/* -------------------------------------------------------------------------- */
+/*                                   Auth                                     */
+/* -------------------------------------------------------------------------- */
 
 export const auth = {
   register: async (payload) => {
-    const responseData = await api('/auth/register', { 
-      method: 'POST', 
-      body: { ...payload, device_name: 'web' }, 
-      auth: false 
+    const { data } = await api('/auth/register', {
+      method: 'POST',
+      body: { ...payload, device_name: 'web' },
+      auth: false,
     });
-    
-    const sessionData = responseData.data ?? responseData;
-    saveSession(sessionData);
-    return sessionData.user;
+    saveSession(data);
+    return data.user;
   },
 
   login: async (email, password) => {
-    const responseData = await api('/auth/login', { 
-      method: 'POST', 
-      body: { email, password, device_name: 'web' }, 
-      auth: false 
+    const { data } = await api('/auth/login', {
+      method: 'POST',
+      body: { email, password, device_name: 'web' },
+      auth: false,
     });
-
-    const sessionData = responseData.data ?? responseData;
-    saveSession(sessionData);
-    return sessionData.user;
+    saveSession(data);
+    return data.user;
   },
 
-  forgotPassword: (email) => api('/auth/forgot-password', { method: 'POST', body: { email }, auth: false }),
+  /** يتحقق من صلاحية التوكن المخزّن ويحدّث بيانات المستخدم. 401 يمسح الجلسة تلقائياً. */
+  refreshUser: async () => {
+    if (!storage.get(TOKEN_KEY)) return null;
+    const { data } = await api('/auth/me');
+    saveUser(data);
+    return data;
+  },
 
-  // تعيين كلمة مرور جديدة عبر التوكن القادم في رابط البريد.
+  forgotPassword: (email) =>
+    api('/auth/forgot-password', { method: 'POST', body: { email }, auth: false }),
+
   // الخادم يُبطل كل التوكنات بعد النجاح، لذلك ننظّف الجلسة المحلية أيضًا.
   resetPassword: async ({ token, email, password, passwordConfirmation }) => {
     const result = await api('/auth/reset-password', {
@@ -130,12 +241,182 @@ export const auth = {
     try {
       await api('/auth/logout', { method: 'POST' });
     } catch {
-      // تجاهل فشل الطلب: الجلسة المحلية هي مصدر الحقيقة للواجهة.
+      // الجلسة المحلية هي مصدر الحقيقة للواجهة.
     } finally {
       clearSession();
     }
   },
 
-  isAuthenticated: () => !!tokenStore.get(),
-  currentUser: () => userStore.get(),
+  /** يلغي كل توكنات المستخدم على كل الأجهزة، بما فيها هذا الجهاز. */
+  logoutAll: async () => {
+    try {
+      await api('/auth/logout-all', { method: 'POST' });
+    } finally {
+      clearSession();
+    }
+  },
+
+  isAuthenticated: () => !!storage.get(TOKEN_KEY),
+  currentUser: () => readUser(),
+};
+
+/* -------------------------------------------------------------------------- */
+/*                                  Profile                                   */
+/* -------------------------------------------------------------------------- */
+
+export const profile = {
+  get: async () => {
+    const { data } = await api('/profile');
+    saveUser(data);
+    return data;
+  },
+
+  /** الحقول المقبولة: name, phone, birth_date, gender */
+  update: async (fields) => {
+    const { data } = await api('/profile', { method: 'PUT', body: fields });
+    saveUser(data);
+    return data;
+  },
+
+  // POST وليس PUT لأن PHP لا يقرأ multipart في طلبات PUT
+  uploadImage: async (file) => {
+    const { data } = await api('/profile/image', {
+      method: 'POST',
+      body: toFormData({ image: file }),
+    });
+    saveUser(data);
+    return data;
+  },
+
+  removeImage: async () => {
+    const { data } = await api('/profile/image', { method: 'DELETE' });
+    saveUser(data);
+    return data;
+  },
+};
+
+/* -------------------------------------------------------------------------- */
+/*                                  Catalog                                   */
+/* -------------------------------------------------------------------------- */
+
+export const catalog = {
+  /** @returns {Promise<{data: object[], meta: object}>} */
+  categories: ({ perPage = 100, signal } = {}) =>
+    api('/categories', { query: { per_page: perPage }, auth: false, signal }),
+
+  services: ({ categoryId, q, page = 1, perPage = 12, signal } = {}) =>
+    api('/services', {
+      query: { category_id: categoryId, q, page, per_page: perPage },
+      auth: false,
+      signal,
+    }),
+
+  service: async (id, { signal } = {}) =>
+    (await api(`/services/${id}`, { auth: false, signal })).data,
+};
+
+/* -------------------------------------------------------------------------- */
+/*                                  Doctors                                   */
+/* -------------------------------------------------------------------------- */
+
+export const doctors = {
+  list: ({ serviceId, q, onlineConsultations, perPage = 100, signal } = {}) =>
+    api('/doctors', {
+      query: {
+        service_id: serviceId,
+        q,
+        accepts_online_consultations: onlineConsultations ? 1 : undefined,
+        per_page: perPage,
+      },
+      auth: false,
+      signal,
+    }),
+
+  get: async (id, { signal } = {}) => (await api(`/doctors/${id}`, { auth: false, signal })).data,
+
+  /** @param {string} date بصيغة YYYY-MM-DD */
+  availability: async (id, date, { signal } = {}) =>
+    (await api(`/doctors/${id}/availability`, { query: { date }, auth: false, signal })).data,
+};
+
+/* -------------------------------------------------------------------------- */
+/*                                Appointments                                */
+/* -------------------------------------------------------------------------- */
+
+export const appointments = {
+  list: ({ status, page = 1, perPage = 10, signal } = {}) =>
+    api('/appointments', { query: { status, page, per_page: perPage }, signal }),
+
+  get: async (id, { signal } = {}) => (await api(`/appointments/${id}`, { signal })).data,
+
+  /** 409 يعني أن الفترة حُجزت قبلك: أعد تحميل الإتاحة. */
+  create: async ({ doctorId, serviceId, startAt }) =>
+    (
+      await api('/appointments', {
+        method: 'POST',
+        body: { doctor_id: doctorId, service_id: serviceId, start_at: startAt },
+      })
+    ).data,
+
+  cancel: async (id, reason) =>
+    (
+      await api(`/appointments/${id}/cancel`, {
+        method: 'POST',
+        body: { reason: reason?.trim() || undefined },
+      })
+    ).data,
+
+  uploadReceipt: async (id, { file, method, reference }) =>
+    (
+      await api(`/appointments/${id}/payment-receipt`, {
+        method: 'POST',
+        body: toFormData({ receipt: file, method, reference: reference?.trim() }),
+      })
+    ).data,
+
+  /** الإيصال على قرص خاص: يُجلب بالتوكن كملف وليس كرابط عام. */
+  receiptFile: (id) => api(`/appointments/${id}/payment-receipt`, { responseType: 'blob' }),
+};
+
+/* -------------------------------------------------------------------------- */
+/*                               Consultations                                */
+/* -------------------------------------------------------------------------- */
+
+export const consultations = {
+  list: ({ page = 1, perPage = 10, signal } = {}) =>
+    api('/consultations', { query: { page, per_page: perPage }, signal }),
+
+  get: async (id, { signal } = {}) => (await api(`/consultations/${id}`, { signal })).data,
+
+  create: async ({ doctorId, serviceId, symptoms, photos = [] }) =>
+    (
+      await api('/consultations', {
+        method: 'POST',
+        body: toFormData({
+          doctor_id: doctorId,
+          service_id: serviceId,
+          symptoms: symptoms.trim(),
+          photos,
+        }),
+      })
+    ).data,
+
+  uploadReceipt: async (id, { file, method, reference }) =>
+    (
+      await api(`/consultations/${id}/payment-receipt`, {
+        method: 'POST',
+        body: toFormData({ receipt: file, method, reference: reference?.trim() }),
+      })
+    ).data,
+
+  sendMessage: async (id, message) =>
+    (
+      await api(`/consultations/${id}/messages`, {
+        method: 'POST',
+        body: { message: message.trim() },
+      })
+    ).data,
+
+  attachmentFile: (id, attachmentId) =>
+    api(`/consultations/${id}/attachments/${attachmentId}`, { responseType: 'blob' }),
 };

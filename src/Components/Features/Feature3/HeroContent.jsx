@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { FiArrowLeft } from "react-icons/fi";
 
 const HeroContent = () => {
@@ -49,7 +50,7 @@ const HeroContent = () => {
                     lg:leading-[28px]
                 "
             >
-                نظارة منصة عيادة رقمية التي تتيح لك حجز موعدك، ودفع قيمة الجلسة،
+                نضارة منصة عيادة رقمية تتيح لك حجز موعدك، ودفع قيمة الجلسة،
                 وسؤال طبيبك عن بشرتك من منزلك - بدون طرق طويلة ولا انتظار في الصالة.
             </p>
 
@@ -62,12 +63,13 @@ const HeroContent = () => {
                     flex-col
                     gap-3
                     sm:flex-row
-                    sm:justify-سفشقف
+                    sm:justify-start
                     sm:gap-4
                 "
             >
                 {/* Primary Button */}
-                <button
+                <Link
+                    to="/booking"
                     className="
                         flex
                         w-full
@@ -92,10 +94,11 @@ const HeroContent = () => {
                     <span>احجز موعدك الآن</span>
 
                     <FiArrowLeft className="h-4 w-4 shrink-0" />
-                </button>
+                </Link>
 
                 {/* Secondary Button */}
-                <button
+                <Link
+                    to="/online-consultation"
                     className="
                         flex
                         w-full
@@ -120,7 +123,7 @@ const HeroContent = () => {
                     "
                 >
                     استشارة أونلاين
-                </button>
+                </Link>
             </div>
         </div>
     );

@@ -19,19 +19,20 @@ const Hero = () => {
                 lg:flex-row
                 lg:items-start
                 lg:gap-12
-                lg:px-0
                 lg:pb-24
+                xl:px-0
             "
         >
             {/* Right Side - Content */}
+            {/* العمودان يتقاسمان العرض، فلا يخرج المحتوى عن الشاشة بين 1024 و1248 بكسل */}
             <div
                 className="
                     flex
                     w-full
                     flex-col
                     gap-5
-                    lg:w-[600px]
-                    lg:shrink-0
+                    lg:min-w-0
+                    lg:flex-1
                     lg:gap-6
                 "
             >
@@ -85,8 +86,8 @@ const Hero = () => {
                 className="
                     flex
                     w-full
-                    lg:w-[600px]
-                    lg:shrink-0
+                    lg:min-w-0
+                    lg:flex-1
                 "
             >
                 <div
@@ -101,7 +102,7 @@ const Hero = () => {
                 >
                     <img
                         src="/interface.jpg"
-                        alt="عيادة نظارة"
+                        alt="عيادة نضارة"
                         className="
                             aspect-[4/3]
                             h-auto
