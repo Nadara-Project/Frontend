@@ -1,217 +1,136 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import MainHeader from "../../../Layouts/Header";
 import Header from "./Header";
+import { Alert, Spinner } from "../../Common/Feedback";
 import { auth } from "../../../services/api-client";
+import { useAuth } from "../../../hooks/useAuth";
+import { useCountdown } from "../../../hooks/useCountdown";
+
+const inputClass =
+  "w-full h-[53px] px-[16px] border border-[#9E9E9E] rounded-[8px] text-[14px] focus:outline-none focus:border-[#4C2325]";
 
 const Login = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [lockedUntil, setLockedUntil] = useState(null);
 
-  const navigate = useNavigate();
-  const location = useLocation();
+  // بعد 5 محاولات فاشلة يقفل الخادم الدخول مؤقتاً (429)، فنعرض عدّاداً بدل رسائل متكررة
+  const lockSeconds = useCountdown(lockedUntil);
+  const isLocked = lockSeconds !== null && lockSeconds > 0;
 
   // رسالة قادمة من مسار آخر (مثل نجاح تعيين كلمة المرور) لتأكيد ما تم للمستخدم.
   const notice = location.state?.notice ?? "";
+  const redirectTo = location.state?.from ?? "/dashboard";
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  if (isAuthenticated && !isLoading) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (isLocked) return;
+
     setErrorMessage("");
     setIsLoading(true);
 
     try {
-      // auth.login تُرجع كائن الـ user مباشرة بناءً على التعديل في api-client.js
-      const user = await auth.login(email, password);
-
-      // تحديد مسار التوجيه بناءً على دور المستخدم (role) أو الاعتماد على location.state قادم من صفحة محمية
-      let defaultRedirect = "/dashboard";
-      if (user?.role === "admin") {
-        defaultRedirect = "/admin/dashboard"; // أو لوحة تحكم الأدمن الخاصة بكِ
-      } else if (user?.role === "doctor") {
-        defaultRedirect = "/doctor/dashboard"; // أو لوحة تحكم الدكتور
-      } else if (user?.role === "patient") {
-        defaultRedirect = "/patient/profile"; // أو صفحة المريض
-      }
-
-      const finalRedirect = location.state?.from ?? defaultRedirect;
-      navigate(finalRedirect, { replace: true });
+      await auth.login(email.trim(), password);
+      navigate(redirectTo, { replace: true });
     } catch (error) {
-      if (error.status === 422) {
-        setErrorMessage(
-          error.fieldError("email") ||
-          "البريد الإلكتروني أو كلمة المرور غير صحيحة."
-        );
+      if (error.status === 429) {
+        const seconds = error.retryAfter ?? 60;
+        setLockedUntil(new Date(Date.now() + seconds * 1000).toISOString());
+        setErrorMessage("");
       } else {
-        setErrorMessage(
-          error.message || "حدث خطأ أثناء تسجيل الدخول."
-        );
+        setErrorMessage(error.status === 422 ? error.fieldError("email") || error.message : error.message);
       }
-    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div
-      className="min-h-screen w-full bg-[#F8F9FA] flex flex-col"
-      dir="rtl"
-    >
+    <div className="min-h-screen w-full bg-[#F8F9FA] flex flex-col" dir="rtl">
       <MainHeader />
 
       <main className="flex-1 w-full flex items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
-        <div
-          className="
-                    w-full
-                    max-w-[446px]
-                    bg-white
-                    rounded-[16px]
-                    border
-                    border-[#E2E8F0]
-                    shadow-sm
-                    flex
-                    flex-col
-                    overflow-hidden
-                "
-        >
-          <Header
-            title="تسجيل الدخول"
-            subtitle="مرحباً بك مجدداً في نضارة للجلدية والتجميل"
-          />
+        <div className="w-full max-w-[446px] bg-white rounded-[16px] border border-[#E2E8F0] shadow-sm flex flex-col overflow-hidden">
+          <Header title="تسجيل الدخول" subtitle="مرحباً بك مجدداً في نضارة للجلدية والتجميل" />
 
-          <form
-            onSubmit={handleSubmit}
-            className="
-                                    flex
-                                    flex-col
-                                    gap-[16px]
-                                    px-4
-                                    pb-5
-                                    sm:px-6
-                                    sm:pb-6
-                                "
-          >
-            {notice && !errorMessage && (
-              <div
-                role="status"
-                className="w-full p-3 bg-[#D5C7AD]/20 border border-[#D5C7AD] rounded-[8px] text-[#4C2325] text-[13px] text-center"
-              >
-                {notice}
-              </div>
-            )}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-[16px] px-4 pb-5 sm:px-6 sm:pb-6">
+            {notice && !errorMessage && !isLocked && <Alert type="info">{notice}</Alert>}
 
-            {errorMessage && (
-              <div
-                role="alert"
-                className="w-full p-3 bg-red-50 border border-red-200 rounded-[8px] text-red-600 text-[13px] text-center"
-              >
-                {errorMessage}
-              </div>
+            {isLocked ? (
+              <Alert type="warning">
+                محاولات دخول كثيرة. يمكنك المحاولة مجدداً بعد{" "}
+                <span dir="ltr" className="font-bold">
+                  {lockSeconds}
+                </span>{" "}
+                ثانية.
+              </Alert>
+            ) : (
+              <Alert>{errorMessage}</Alert>
             )}
 
             {/* Email */}
             <div className="flex flex-col gap-1 text-right">
-              <label className="text-[13px] sm:text-[14px] font-medium text-[#2B2527]">
+              <label htmlFor="login-email" className="text-[13px] sm:text-[14px] font-medium text-[#2B2527]">
                 البريد الالكتروني
               </label>
-
               <input
+                id="login-email"
+                autoComplete="email"
                 type="email"
                 dir="ltr"
                 placeholder="example@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="
-                                            w-full
-                                            h-[53px]
-                                            px-[16px]
-                                            border
-                                            border-[#9E9E9E]
-                                            rounded-[8px]
-                                            text-[14px]
-                                            focus:outline-none
-                                            focus:border-[#4C2325]
-                                        "
+                className={inputClass}
               />
             </div>
 
             {/* Password */}
             <div className="flex flex-col gap-1 text-right">
-              <label className="text-[13px] sm:text-[14px] font-medium text-[#2B2527]">
+              <label htmlFor="login-password" className="text-[13px] sm:text-[14px] font-medium text-[#2B2527]">
                 كلمة المرور
               </label>
 
               <div className="relative flex items-center w-full">
                 <input
+                  id="login-password"
+                  autoComplete="current-password"
                   type={showPassword ? "text" : "password"}
                   placeholder="********"
                   value={password}
-                  onChange={(e) =>
-                    setPassword(e.target.value)
-                  }
+                  onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="
-                                                w-full
-                                                h-[53px]
-                                                px-[16px]
-                                                pl-[45px]
-                                                border
-                                                border-[#9E9E9E]
-                                                rounded-[8px]
-                                                text-[14px]
-                                                focus:outline-none
-                                                focus:border-[#4C2325]
-                                            "
+                  className={`${inputClass} pl-[45px]`}
                 />
 
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowPassword(!showPassword)
-                  }
-                  className="absolute left-[16px] text-[#9CA3AF]"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                  className="absolute left-[16px] text-[#9CA3AF] hover:text-[#4C2325] cursor-pointer"
                 >
-                  {showPassword ? (
-                    <FiEyeOff size={20} />
-                  ) : (
-                    <FiEye size={20} />
-                  )}
+                  {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
                 </button>
               </div>
             </div>
 
-            {/* Remember / Forgot */}
-            <div
-              className="
-                                    flex
-                                    flex-wrap
-                                    items-center
-                                    justify-between
-                                    gap-3
-                                    text-[13px]
-                                    sm:text-[14px]
-                                    text-[#2B2527]
-                                "
-            >
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) =>
-                    setRememberMe(e.target.checked)
-                  }
-                  className="w-4 h-4 rounded border-gray-300 accent-[#4C2325]"
-                />
-                تذكرني
-              </label>
-
+            <div className="flex flex-wrap items-center justify-end gap-3 text-[13px] sm:text-[14px] text-[#2B2527]">
               <Link
                 to="/forgot-password"
+                state={email ? { email: email.trim() } : undefined}
                 className="hover:underline text-[#4C2325] font-medium"
               >
                 نسيت كلمة المرور؟
@@ -220,54 +139,19 @@ const Login = () => {
 
             <button
               type="submit"
-              disabled={isLoading}
-              className="
-                                            w-full
-                                            min-h-[48px]
-                                            bg-[#4C2325]
-                                            hover:bg-[#36181A]
-                                            text-white
-                                            font-medium
-                                            rounded-[8px]
-                                            transition-colors
-                                            cursor-pointer
-                                            disabled:opacity-50
-                                            mt-2
-                                            font-[Tajawal]
-                                            text-[14px]
-                                            sm:text-[16px]
-                                        "
+              disabled={isLoading || isLocked}
+              className="w-full min-h-[48px] mt-2 flex items-center justify-center gap-2 bg-[#4C2325] hover:bg-[#36181A] text-white font-medium rounded-[8px] transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 font-[Tajawal] text-[14px] sm:text-[16px]"
             >
-              {isLoading
-                ? "جاري تسجيل الدخول..."
-                : "تسجيل الدخول"}
+              {isLoading && <Spinner className="h-[18px] w-[18px]" label="جاري تسجيل الدخول" />}
+              {isLoading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
             </button>
           </form>
 
-          <div
-            className="
-                            w-full
-                            min-h-[57px]
-                            py-[16px]
-                            px-4
-                            sm:px-6
-                            bg-[#4C2325]/10
-                            border-t
-                            border-[#D5C7AD]/20
-                            flex
-                            flex-wrap
-                            items-center
-                            justify-center
-                            gap-1
-                            text-center
-                        "
-          >
-            <span className="text-[13px] sm:text-[14px] text-[#4C2325]">
-              ليس لديك حساب؟
-            </span>
-
+          <div className="w-full min-h-[57px] py-[16px] px-4 sm:px-6 bg-[#4C2325]/10 border-t border-[#D5C7AD]/20 flex flex-wrap items-center justify-center gap-1 text-center">
+            <span className="text-[13px] sm:text-[14px] text-[#4C2325]">ليس لديك حساب؟</span>
             <Link
               to="/register"
+              state={location.state?.from ? { from: location.state.from } : undefined}
               className="font-bold text-[13px] sm:text-[14px] text-[#4C2325] hover:underline"
             >
               إنشاء حساب

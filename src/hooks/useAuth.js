@@ -15,5 +15,10 @@ export const useAuth = () => {
     navigate('/login', { replace: true });
   }, [navigate]);
 
-  return { user, isAuthenticated: !!token, logout };
+  return {
+    user,
+    isAuthenticated: !!token,
+    isPatient: !user?.role || user.role === 'patient',
+    logout,
+  };
 };

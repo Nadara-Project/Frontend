@@ -1,7 +1,14 @@
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../hooks/useAuth";
 
 const FooterCTA = () => {
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
+
+    // المستخدم المسجّل لا يحتاج لإنشاء حساب، فنوجّهه للحجز مباشرة
+    const primaryAction = isAuthenticated
+        ? { label: "احجز موعدك", path: "/booking" }
+        : { label: "إنشاء حساب", path: "/register" };
 
     return (
         <div
@@ -70,6 +77,7 @@ const FooterCTA = () => {
                 "
             >
                 <button
+                    onClick={() => navigate("/contact")}
                     className="
                         flex
                         h-[42px]
@@ -93,7 +101,7 @@ const FooterCTA = () => {
                 </button>
 
                 <button
-                    onClick={() => navigate("/register")}
+                    onClick={() => navigate(primaryAction.path)}
                     className="
                         flex
                         h-[42px]
@@ -114,7 +122,7 @@ const FooterCTA = () => {
                         sm:w-auto
                     "
                 >
-                    إنشاء حساب
+                    {primaryAction.label}
                 </button>
             </div>
         </div>

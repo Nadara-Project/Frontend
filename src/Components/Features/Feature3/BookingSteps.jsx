@@ -14,8 +14,8 @@ const BookingSteps = () => {
         },
         {
             number: "٣",
-            title: "أكمل الدفع",
-            description: "دفع إلكتروني فوري مع رقم عملية.",
+            title: "ارفع إيصال الدفع",
+            description: "حوّل المبلغ وارفع الإيصال خلال 30 دقيقة.",
         },
         {
             number: "٤",
@@ -33,8 +33,6 @@ const BookingSteps = () => {
                 bg-[#D5C7AD1A]
                 px-4
                 py-16
-
-                lg:h-[374px]
             "
         >
             <div
