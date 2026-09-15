@@ -27,7 +27,14 @@ const FIELD_LABELS = {
   message: 'الرسالة',
   reason: 'سبب الإلغاء',
   status: 'الحالة',
+  category_id: 'التصنيف',
+  price: 'السعر',
+  description: 'الوصف',
+  is_active: 'حالة التفعيل',
 };
+
+// الحقول التي تخص حساب شخص، فتكرارها يعني وجود حساب آخر بنفس القيمة
+const ACCOUNT_FIELDS = ['email', 'phone'];
 
 const fieldLabel = (field = '') => {
   const base = String(field).split('.')[0];
@@ -59,14 +66,23 @@ const EXACT = {
   'The phone field must be a valid phone number.': 'رقم الهاتف غير صحيح.',
   'The given password has appeared in a data leak. Please choose a different password.':
     'كلمة المرور هذه ظهرت في تسريبات بيانات سابقة، اختر كلمة مرور مختلفة.',
+  'This category still has services. Move or delete them first.':
+    'لا يمكن حذف تصنيف فيه خدمات. انقل خدماته إلى تصنيف آخر أو احذفها أولاً.',
 };
 
 /** قواعد التحقق القياسية في Laravel، تُطابق بالنمط وتُعاد صياغتها بالعربية. */
 const PATTERNS = [
   [/^Too many login attempts\. Please try again in (\d+) seconds?\.$/, (s) => `محاولات دخول كثيرة، أعد المحاولة بعد ${s} ثانية.`],
   [/^Appointments can only be cancelled at least (\d+) hours in advance\.$/, (h) => `لا يمكن إلغاء الموعد قبل أقل من ${h} ساعة من وقته.`],
-  [/^The (.+?) has already been taken\.$/, (f) => `${fieldLabel(f)} مستخدم مسبقاً في حساب آخر.`],
+  [
+    /^The (.+?) has already been taken\.$/,
+    (f) => (ACCOUNT_FIELDS.includes(f) ? `${fieldLabel(f)} مستخدم مسبقاً في حساب آخر.` : `${fieldLabel(f)} مستخدم مسبقاً، اختر قيمة مختلفة.`),
+  ],
   [/^The (.+?) field is required\.$/, (f) => `${fieldLabel(f)} مطلوب.`],
+  [/^The (.+?) field must be a number\.$/, (f) => `${fieldLabel(f)} يجب أن يكون رقماً.`],
+  [/^The (.+?) field must be at least ([\d.]+)\.$/, (f, n) => `${fieldLabel(f)} يجب ألا يقل عن ${n}.`],
+  [/^The (.+?) field must not be greater than ([\d.]+)\.$/, (f, n) => `${fieldLabel(f)} يجب ألا يتجاوز ${n}.`],
+  [/^The (.+?) field must be true or false\.$/, (f) => `قيمة ${fieldLabel(f)} غير صالحة.`],
   [/^The (.+?) field must be at least (\d+) characters\.$/, (f, n) => `${fieldLabel(f)} يجب أن يكون ${n} أحرف على الأقل.`],
   [/^The (.+?) field must not be greater than (\d+) characters\.$/, (f, n) => `${fieldLabel(f)} يجب ألا يتجاوز ${n} حرفاً.`],
   [/^The (.+?) field must not be greater than (\d+) kilobytes\.$/, (f, kb) => `حجم ${fieldLabel(f)} يجب ألا يتجاوز ${Math.round(kb / 1024)}MB.`],

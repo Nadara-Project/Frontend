@@ -17,8 +17,10 @@ export const useAuth = () => {
 
   return {
     user,
+    role: user?.role ?? null,
     isAuthenticated: !!token,
     isPatient: !user?.role || user.role === 'patient',
+    isAdmin: user?.role === 'admin',
     logout,
   };
 };

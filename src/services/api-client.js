@@ -182,6 +182,9 @@ const toFormData = (fields) => {
     if (value === undefined || value === null || value === '') return;
     if (Array.isArray(value)) {
       value.forEach((item) => formData.append(`${key}[]`, item));
+    } else if (typeof value === 'boolean') {
+      // قاعدة boolean في Laravel ترفض النص "true"، وتقبل "1" و "0"
+      formData.append(key, value ? '1' : '0');
     } else {
       formData.append(key, value);
     }
@@ -419,4 +422,103 @@ export const consultations = {
 
   attachmentFile: (id, attachmentId) =>
     api(`/consultations/${id}/attachments/${attachmentId}`, { responseType: 'blob' }),
+};
+
+/* -------------------------------------------------------------------------- */
+/*                         Admin — كتالوج المنصة (US-007/008)                  */
+/* -------------------------------------------------------------------------- */
+
+export const admin = {
+  categories: {
+    /** كل التصنيفات مع عدد خدماتها (بما فيها المعطّلة). */
+    list: ({ q, page = 1, perPage = 15, signal } = {}) =>
+      api('/admin/categories', { query: { q, page, per_page: perPage }, signal }),
+
+    get: async (id, { signal } = {}) => (await api(`/admin/categories/${id}`, { signal })).data,
+
+    create: async ({ name }) =>
+      (await api('/admin/categories', { method: 'POST', body: { name: name.trim() } })).data,
+
+    update: async (id, { name }) =>
+      (await api(`/admin/categories/${id}`, { method: 'PUT', body: { name: name.trim() } })).data,
+
+    /** يرجع 409 إذا كان التصنيف ما زال يحتوي خدمات. */
+    remove: (id) => api(`/admin/categories/${id}`, { method: 'DELETE' }),
+  },
+
+  services: {
+    /** يشمل الخدمات المعطّلة. isActive: true | false | undefined للكل. */
+    list: ({ q, categoryId, isActive, page = 1, perPage = 15, signal } = {}) =>
+      api('/admin/services', {
+        query: {
+          q,
+          category_id: categoryId,
+          is_active: isActive === undefined ? undefined : isActive ? 1 : 0,
+          page,
+          per_page: perPage,
+        },
+        signal,
+      }),
+
+    get: async (id, { signal } = {}) => (await api(`/admin/services/${id}`, { signal })).data,
+
+    /** multipart لأن الصورة تُرسل مع الإنشاء. */
+    create: async ({ categoryId, name, description, price, isActive, image }) =>
+      (
+        await api('/admin/services', {
+          method: 'POST',
+          body: toFormData({
+            category_id: categoryId,
+            name: name.trim(),
+            description: description?.trim(),
+            price,
+            is_active: isActive,
+            image,
+          }),
+        })
+      ).data,
+
+    /** JSON: الصورة لها مسار مستقل لأن PHP لا يقرأ multipart في PUT. */
+    update: async (id, { categoryId, name, description, price, isActive }) =>
+      (
+        await api(`/admin/services/${id}`, {
+          method: 'PUT',
+          body: {
+            category_id: categoryId,
+            name: name.trim(),
+            description: description?.trim() || null,
+            price,
+            is_active: isActive,
+          },
+        })
+      ).data,
+
+    toggleActive: async (id) =>
+      (await api(`/admin/services/${id}/toggle-active`, { method: 'POST' })).data,
+
+    uploadImage: async (id, file) =>
+      (
+        await api(`/admin/services/${id}/image`, {
+          method: 'POST',
+          body: toFormData({ image: file }),
+        })
+      ).data,
+
+    removeImage: async (id) => (await api(`/admin/services/${id}/image`, { method: 'DELETE' })).data,
+
+    /** حذف ناعم: المواعيد السابقة تبقى مرتبطة بالخدمة. */
+    remove: (id) => api(`/admin/services/${id}`, { method: 'DELETE' }),
+  },
+
+  /** أعداد سريعة للوحة الإدارة، من meta.total بطلب صفحة واحدة. */
+  stats: async ({ signal } = {}) => {
+    const total = (promise) => promise.then((response) => response?.meta?.total ?? 0);
+    const [services, active, inactive, categories] = await Promise.all([
+      total(api('/admin/services', { query: { per_page: 1 }, signal })),
+      total(api('/admin/services', { query: { per_page: 1, is_active: 1 }, signal })),
+      total(api('/admin/services', { query: { per_page: 1, is_active: 0 }, signal })),
+      total(api('/admin/categories', { query: { per_page: 1 }, signal })),
+    ]);
+    return { services, active, inactive, categories };
+  },
 };
