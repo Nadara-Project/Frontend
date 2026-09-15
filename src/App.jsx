@@ -28,6 +28,12 @@ const MyAppointments = lazy(() => import('./Components/Features/Feature2/MyAppoi
 const MyConsultations = lazy(() => import('./Components/Features/Feature2/MyConsultations'));
 const PatientProfile = lazy(() => import('./Components/Features/Feature1-Auth/PatientProfile'));
 
+const AdminLayout = lazy(() => import('./Components/Features/Feature7-Admin/AdminLayout'));
+const AdminOverview = lazy(() => import('./Components/Features/Feature7-Admin/AdminOverview'));
+const AdminServices = lazy(() => import('./Components/Features/Feature7-Admin/AdminServices'));
+const AdminServiceForm = lazy(() => import('./Components/Features/Feature7-Admin/AdminServiceForm'));
+const AdminCategories = lazy(() => import('./Components/Features/Feature7-Admin/AdminCategories'));
+
 const NotFound = lazy(() => import('./Components/Common/NotFound'));
 
 const FullPageLoader = () => (
@@ -118,6 +124,22 @@ function App() {
             <Route index element={<MyAppointments />} />
             <Route path="consultations" element={<MyConsultations />} />
             <Route path="profile" element={<PatientProfile />} />
+          </Route>
+
+          {/* لوحة إدارة المنصة: الكتالوج (سبرنت 2) */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AdminOverview />} />
+            <Route path="services" element={<AdminServices />} />
+            <Route path="services/new" element={<AdminServiceForm />} />
+            <Route path="services/:id/edit" element={<AdminServiceForm key="edit" />} />
+            <Route path="categories" element={<AdminCategories />} />
           </Route>
 
           {/* روابط قديمة */}

@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { FiChevronDown, FiLogOut } from "react-icons/fi";
 import UserAvatar from "./UserAvatar";
-import { ACCOUNT_LINKS } from "../../config/navigation";
+import { accountLinksFor } from "../../config/navigation";
 
 /**
  * زر الحساب في الهيدر: الصورة والاسم وسهم، ويفتح قائمة فيها أقسام الحساب وتسجيل الخروج.
@@ -103,7 +103,7 @@ const UserMenu = ({ user, onLogout }) => {
                         )}
                     </div>
 
-                    {ACCOUNT_LINKS.map(({ to, label, Icon }) => {
+                    {accountLinksFor(user?.role).map(({ to, label, Icon }) => {
                         const active = pathname === to;
                         return (
                             <Link

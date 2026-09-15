@@ -7,6 +7,7 @@ import { Alert, Spinner } from "../../Common/Feedback";
 import { auth } from "../../../services/api-client";
 import { useAuth } from "../../../hooks/useAuth";
 import { useCountdown } from "../../../hooks/useCountdown";
+import { homePathFor } from "../../../config/navigation";
 
 const inputClass =
   "w-full h-[53px] px-[16px] border border-[#9E9E9E] rounded-[8px] text-[14px] focus:outline-none focus:border-[#4C2325]";
@@ -14,7 +15,7 @@ const inputClass =
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,10 +30,10 @@ const Login = () => {
 
   // رسالة قادمة من مسار آخر (مثل نجاح تعيين كلمة المرور) لتأكيد ما تم للمستخدم.
   const notice = location.state?.notice ?? "";
-  const redirectTo = location.state?.from ?? "/dashboard";
+  const requestedPath = location.state?.from;
 
   if (isAuthenticated && !isLoading) {
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to={requestedPath ?? homePathFor(user)} replace />;
   }
 
   const handleSubmit = async (event) => {
@@ -43,8 +44,9 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      await auth.login(email.trim(), password);
-      navigate(redirectTo, { replace: true });
+      // الأدمن يذهب للوحة الإدارة، والمريض للوحته، ما لم يطلب صفحة محددة
+      const loggedInUser = await auth.login(email.trim(), password);
+      navigate(requestedPath ?? homePathFor(loggedInUser), { replace: true });
     } catch (error) {
       if (error.status === 429) {
         const seconds = error.retryAfter ?? 60;

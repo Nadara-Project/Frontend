@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import NadaraLogo from "../Components/Common/NadaraLogo";
 import UserMenu from "../Components/Common/UserMenu";
 import UserAvatar from "../Components/Common/UserAvatar";
-import { ACCOUNT_LINKS } from "../config/navigation";
+import { accountLinksFor } from "../config/navigation";
 import { useAuth } from "../hooks/useAuth";
 
 const Header = () => {
@@ -345,7 +345,7 @@ const Header = () => {
                             </div>
                         </div>
 
-                        {ACCOUNT_LINKS.map(({ to, label, Icon }) => (
+                        {accountLinksFor(user?.role).map(({ to, label, Icon }) => (
                             <NavLink
                                 key={to}
                                 to={to}
