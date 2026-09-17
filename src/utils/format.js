@@ -104,6 +104,64 @@ export const todayInClinic = () => {
   }
 };
 
+/** مفاتيح فلتر الرزنامة كما يقبلها الخادم. */
+export const PERIODS = ['today', 'tomorrow', 'week', 'month'];
+
+const weekdayIndex = (ymd) => {
+  const [year, month, day] = ymd.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay(); // 0 الأحد … 6 السبت
+};
+
+const lastDayOfMonth = (ymd) => {
+  const [year, month] = ymd.split('-').map(Number);
+  return `${ymd.slice(0, 8)}${String(new Date(Date.UTC(year, month, 0)).getUTCDate()).padStart(2, '0')}`;
+};
+
+/**
+ * حدود الفترة بتوقيت العيادة، مطابقة لحساب الخادم:
+ * الأسبوع من السبت إلى الجمعة، والشهر شهر تقويمي كامل.
+ *
+ * @returns {{ from: string, to: string }} تواريخ YYYY-MM-DD شاملة الطرفين
+ */
+export const periodRange = (period, today = todayInClinic()) => {
+  switch (period) {
+    case 'tomorrow': {
+      const day = addDays(today, 1);
+      return { from: day, to: day };
+    }
+    case 'week': {
+      // السبت = 6 في ترقيم JavaScript، فالمسافة منه = (اليوم + 1) % 7
+      const start = addDays(today, -((weekdayIndex(today) + 1) % 7));
+      return { from: start, to: addDays(start, 6) };
+    }
+    case 'month':
+      return { from: `${today.slice(0, 8)}01`, to: lastDayOfMonth(today) };
+    default:
+      return { from: today, to: today };
+  }
+};
+
+/** "اليوم · الخميس 17 سبتمبر 2026" أو "السبت 12 – الجمعة 18 سبتمبر 2026" */
+export const periodLabel = (period, today = todayInClinic()) => {
+  const { from, to } = periodRange(period, today);
+
+  if (period === 'month') {
+    const [year, month] = from.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString(LOCALE, {
+      timeZone: 'UTC',
+      month: 'long',
+      year: 'numeric',
+    });
+  }
+
+  if (from === to) {
+    const prefix = period === 'tomorrow' ? 'غداً' : 'اليوم';
+    return `${prefix} · ${formatDateLong(from)}`;
+  }
+
+  return `${formatDateLong(from)} – ${formatDateLong(to)}`;
+};
+
 export const addDays = (ymd, days) => {
   const [year, month, day] = ymd.split('-').map(Number);
   const date = new Date(Date.UTC(year, month - 1, day + days));

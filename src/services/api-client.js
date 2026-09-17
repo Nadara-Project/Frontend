@@ -347,8 +347,16 @@ export const doctors = {
 /* -------------------------------------------------------------------------- */
 
 export const appointments = {
-  list: ({ status, page = 1, perPage = 10, signal } = {}) =>
-    api('/appointments', { query: { status, page, per_page: perPage }, signal }),
+  /**
+   * القائمة مفلترة حسب دور صاحب التوكن (مريض/طبيب/سكرتير/أدمن).
+   * period اختصار للرزنامة (today|tomorrow|week|month) ولا يُرسل مع from/to،
+   * والخادم يرتّب تصاعدياً معه وتنازلياً بدونه.
+   */
+  list: ({ status, period, from, to, page = 1, perPage = 10, signal } = {}) =>
+    api('/appointments', {
+      query: { status, period, from, to, page, per_page: perPage },
+      signal,
+    }),
 
   get: async (id, { signal } = {}) => (await api(`/appointments/${id}`, { signal })).data,
 
@@ -422,6 +430,21 @@ export const consultations = {
 
   attachmentFile: (id, attachmentId) =>
     api(`/consultations/${id}/attachments/${attachmentId}`, { responseType: 'blob' }),
+};
+
+/* -------------------------------------------------------------------------- */
+/*                        مراجعة الدفعات — الطاقم فقط                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * التأكيد يحرّر ما دُفع مقابله: الموعد يصير approved، والاستشارة تُفتح للطبيب.
+ * الصلاحية بالـ Policy: الأدمن، أو طبيب الموعد، أو سكرتيره.
+ */
+export const payments = {
+  verify: async (id) => (await api(`/payments/${id}/verify`, { method: 'POST' })).data,
+
+  reject: async (id, reason) =>
+    (await api(`/payments/${id}/reject`, { method: 'POST', body: { reason: reason.trim() } })).data,
 };
 
 /* -------------------------------------------------------------------------- */
