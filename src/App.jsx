@@ -34,6 +34,12 @@ const AdminServices = lazy(() => import('./Components/Features/Feature7-Admin/Ad
 const AdminServiceForm = lazy(() => import('./Components/Features/Feature7-Admin/AdminServiceForm'));
 const AdminCategories = lazy(() => import('./Components/Features/Feature7-Admin/AdminCategories'));
 
+const DoctorLayout = lazy(() => import('./Components/Features/Feature9-Doctor/DoctorLayout'));
+const DoctorSchedule = lazy(() => import('./Components/Features/Feature9-Doctor/DoctorSchedule'));
+const DoctorAppointmentDetail = lazy(() => import('./Components/Features/Feature9-Doctor/DoctorAppointmentDetail'));
+const DoctorConsultations = lazy(() => import('./Components/Features/Feature9-Doctor/DoctorConsultations'));
+const DoctorConsultationDetail = lazy(() => import('./Components/Features/Feature9-Doctor/DoctorConsultationDetail'));
+
 const NotFound = lazy(() => import('./Components/Common/NotFound'));
 
 const FullPageLoader = () => (
@@ -140,6 +146,21 @@ function App() {
             <Route path="services/new" element={<AdminServiceForm />} />
             <Route path="services/:id/edit" element={<AdminServiceForm key="edit" />} />
             <Route path="categories" element={<AdminCategories />} />
+          </Route>
+
+          {/* بوابة الطبيب: الجدول والاستشارات */}
+          <Route
+            path="/doctor"
+            element={
+              <ProtectedRoute role="doctor">
+                <DoctorLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<DoctorSchedule />} />
+            <Route path="appointments/:id" element={<DoctorAppointmentDetail />} />
+            <Route path="consultations" element={<DoctorConsultations />} />
+            <Route path="consultations/:id" element={<DoctorConsultationDetail />} />
           </Route>
 
           {/* روابط قديمة */}
